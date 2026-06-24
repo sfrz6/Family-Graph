@@ -747,8 +747,9 @@ body {
    RESPONSIVE (MOBILE)
    ============================================================ */
 @media (max-width: 640px) {
-  /* Header stacks into rows instead of overflowing */
-  .app-header { flex-wrap: wrap; padding: 8px 12px; gap: 8px; }
+  /* Header stacks into rows instead of overflowing, and sits below the
+     phone's status bar/notch instead of flush against the top edge */
+  .app-header { flex-wrap: wrap; padding: calc(20px + env(safe-area-inset-top, 0px)) 12px 8px; gap: 8px; }
   .header-left { flex-wrap: wrap; width: 100%; justify-content: space-between; gap: 8px; }
   .header-title { font-size: 14px; }
   .mode-tabs { flex: 1; }
