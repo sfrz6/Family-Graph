@@ -12,9 +12,10 @@ That command means: "In the app package, find main.py, use the 'app' object,
 and --reload means restart automatically when I change code."
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from .config import ALLOWED_ORIGINS
 from .database import engine, Base
 from .routes import auth, persons, relationship, contributions
 
@@ -31,20 +32,29 @@ app = FastAPI(
 
 # --- CORS Configuration ---
 # CORS = Cross-Origin Resource Sharing
-# 
-# By default, a browser blocks requests from one address to another.
-# Our frontend (React) will run on http://localhost:3000
-# Our backend (FastAPI) will run on http://localhost:8000
-# Without CORS, the browser would block the frontend from calling the backend.
 #
-# This middleware tells the browser: "It's okay, allow requests from these origins."
+# By default, a browser blocks requests from one address to another.
+# This is a private app, so only the configured FRONTEND_URL (see config.py,
+# itself read from the FRONTEND_URL environment variable) is allowed to call
+# this API from a browser. allow_credentials=True is required for the
+# HttpOnly session cookie to be sent/received across origins (e.g. the
+# Vite dev server talking to a separately-run local backend).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React dev servers
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],   # Allow all HTTP methods (GET, POST, PUT, DELETE)
     allow_headers=["*"],   # Allow all headers
 )
+
+
+@app.middleware("http")
+async def add_noindex_header(request: Request, call_next):
+    """This is a private family site - tell crawlers to stay out, belt-and-suspenders
+    alongside robots.txt and the frontend's <meta name="robots"> tag."""
+    response = await call_next(request)
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
 
 # Register route files.
 # Each router adds its endpoints to the app.

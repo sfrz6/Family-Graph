@@ -258,15 +258,19 @@ function FamilyGraphInner({ role, onLogout, language, setLanguage }) {
   const [showUserMenu, setShowUserMenu] = useState(role === "user");
   const [showSearchPopup, setShowSearchPopup] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [graphFading, setGraphFading] = useState(false);
 
   const { fitView } = useReactFlow();
 
   const fetchData = async () => {
+    setIsLoading(true);
     try {
       const [p, r] = await Promise.all([getPersons(), getRelationships()]);
       setPersons(p);
       setRelationships(r);
     } catch (err) { console.error(err); }
+    finally { setIsLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, [dataVersion]);
@@ -274,6 +278,8 @@ function FamilyGraphInner({ role, onLogout, language, setLanguage }) {
   // Rebuild graph when data or view changes
   useEffect(() => {
     if (persons.length === 0) return;
+
+    setGraphFading(true);
 
     let displayPersons = persons;
     let displayRels = relationships;
@@ -314,7 +320,10 @@ function FamilyGraphInner({ role, onLogout, language, setLanguage }) {
     const { nodes: n, edges: e } = buildGraphData(displayPersons, displayRels, highlightedPath, layoutPositions);
     setNodes(n);
     setEdges(e);
-    setTimeout(() => fitView({ padding: 0.3, duration: 500 }), 100);
+    setTimeout(() => {
+      fitView({ padding: 0.3, duration: 500 });
+      setGraphFading(false);
+    }, 100);
   }, [persons, relationships, userMode, centeredPersonId, relationshipResult]);
 
   const onNodeClick = useCallback((event, node) => {
@@ -388,10 +397,17 @@ function FamilyGraphInner({ role, onLogout, language, setLanguage }) {
 
   const handleDataChanged = () => setDataVersion((v) => v + 1);
 
+  const handlePersonDeleted = useCallback((personId) => {
+    setSelectedPerson(null);
+    setCenteredPersonId((prev) => (prev === personId ? null : prev));
+    setViewHistory([]);
+    setDataVersion((v) => v + 1);
+  }, []);
+
   const isAr = language === "ar";
   const labels = isAr
-    ? { title: "شجرة العائلة", logout: "خروج", admin: "لوحة الإدارة", menu: "القائمة", tree: "الشجرة", search: "بحث", relationship: "صلة القرابة", treeHint: "اضغط على أي اسم لإظهار القريبات" }
-    : { title: "Family Graph", logout: "Logout", admin: "Admin Panel", menu: "Menu", tree: "Tree", search: "Search", relationship: "Relationship", treeHint: "Click any name to see their relatives" };
+    ? { title: "شجرة العائلة", logout: "خروج", admin: "لوحة الإدارة", menu: "القائمة", tree: "الشجرة", search: "بحث", relationship: "صلة القرابة", treeHint: "اضغط على أي اسم لإظهار القريبات", empty: "لا يوجد أفراد" }
+    : { title: "Family Graph", logout: "Logout", admin: "Admin Panel", menu: "Menu", tree: "Tree", search: "Search", relationship: "Relationship", treeHint: "Click any name to see their relatives", empty: "No family members yet" };
 
   return (
     <div className={`app-container ${isAr ? "rtl" : "ltr"}`}>
@@ -513,7 +529,15 @@ function FamilyGraphInner({ role, onLogout, language, setLanguage }) {
       )}
 
       {/* Graph */}
-      <div className="graph-container">
+      <div className={`graph-container ${graphFading ? "graph-fading" : ""}`}>
+        {isLoading && (
+          <div className="loading-overlay">
+            <div className="spinner" />
+          </div>
+        )}
+        {!isLoading && persons.length === 0 && (
+          <div className="empty-state">{labels.empty}</div>
+        )}
         {viewHistory.length > 0 && (userMode === "tree" || userMode === "search") && (
           <button className={`back-btn ${isAr ? "rtl" : "ltr"}`} onClick={handleBack}>
             ↩ {isAr ? "رجوع" : "Back"}
@@ -542,6 +566,7 @@ function FamilyGraphInner({ role, onLogout, language, setLanguage }) {
         relationships={relationships}
         onClose={() => setSelectedPerson(null)}
         onPersonClick={handlePanelPersonClick}
+        onPersonDeleted={handlePersonDeleted}
         language={language}
         role={role}
       />

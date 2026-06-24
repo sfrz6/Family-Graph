@@ -25,6 +25,7 @@ from typing import List, Optional
 
 from ..database import get_db
 from ..relationship_finder import get_relationship
+from ..dependencies import get_current_user
 
 router = APIRouter(prefix="/api/relationship", tags=["relationship"])
 
@@ -46,7 +47,11 @@ class RelationshipFindResponse(BaseModel):
 
 
 @router.post("/find", response_model=RelationshipFindResponse)
-def find_relationship(request: RelationshipFindRequest, db: Session = Depends(get_db)):
+def find_relationship(
+    request: RelationshipFindRequest,
+    db: Session = Depends(get_db),
+    _user: dict = Depends(get_current_user),
+):
     """
     POST /api/relationship/find
     

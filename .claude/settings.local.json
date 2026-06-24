@@ -37,7 +37,11 @@
       "PowerShell(Get-Process *)",
       "PowerShell(Get-NetTCPConnection *)",
       "PowerShell(wsl -l -v 2>&1)",
-      "PowerShell(Stop-Process *)"
+      "PowerShell(Stop-Process *)",
+      "Bash(node drive_polish.js)",
+      "Bash(node drive_polish2.js)",
+      "Bash(node drive_polish3.js)",
+      "Bash(node drive_noresults.js)"
     ]
   }
 }

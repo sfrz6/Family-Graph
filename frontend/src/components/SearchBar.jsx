@@ -30,6 +30,8 @@ function SearchBar({ persons, relationships, onSelectPerson, onFindRelationship,
   const [selected1, setSelected1] = useState(null);
   const [selected2, setSelected2] = useState(null);
   const [activeInput, setActiveInput] = useState(null);
+  const [dropdownOpen1, setDropdownOpen1] = useState(false);
+  const [dropdownOpen2, setDropdownOpen2] = useState(false);
 
   const ref1 = useRef(null);
   const ref2 = useRef(null);
@@ -82,10 +84,10 @@ function SearchBar({ persons, relationships, onSelectPerson, onFindRelationship,
   useEffect(() => {
     const handleClick = (e) => {
       if (ref1.current && !ref1.current.contains(e.target)) {
-        setSuggestions1([]);
+        setDropdownOpen1(false);
       }
       if (ref2.current && !ref2.current.contains(e.target)) {
-        setSuggestions2([]);
+        setDropdownOpen2(false);
       }
     };
     document.addEventListener("mousedown", handleClick);
@@ -107,18 +109,21 @@ function SearchBar({ persons, relationships, onSelectPerson, onFindRelationship,
     setQuery1(value);
     setSelected1(null);
     setSuggestions1(filterPersons(value));
+    setDropdownOpen1(value.length > 0);
   };
 
   const handleInput2 = (value) => {
     setQuery2(value);
     setSelected2(null);
     setSuggestions2(filterPersons(value));
+    setDropdownOpen2(value.length > 0);
   };
 
   const selectPerson1 = (person) => {
     setSelected1(person);
     setQuery1(getFullName(person));
     setSuggestions1([]);
+    setDropdownOpen1(false);
 
     if (mode === "search") {
       onSelectPerson(person.id);
@@ -129,6 +134,7 @@ function SearchBar({ persons, relationships, onSelectPerson, onFindRelationship,
     setSelected2(person);
     setQuery2(getFullName(person));
     setSuggestions2([]);
+    setDropdownOpen2(false);
   };
 
   const handleFindRelationship = () => {
@@ -146,6 +152,7 @@ function SearchBar({ persons, relationships, onSelectPerson, onFindRelationship,
           person1: "الشخص الأول...",
           person2: "الشخص الثاني...",
           find: "ابحث",
+          noResults: "لا توجد نتائج",
         }
       : {
           search: "Search",
@@ -154,6 +161,7 @@ function SearchBar({ persons, relationships, onSelectPerson, onFindRelationship,
           person1: "First person...",
           person2: "Second person...",
           find: "Find",
+          noResults: "No results",
         };
 
   // Renders a suggestion dropdown item with father's name for disambiguation
@@ -216,9 +224,11 @@ function SearchBar({ persons, relationships, onSelectPerson, onFindRelationship,
             }
             className="search-input"
           />
-          {suggestions1.length > 0 && (
+          {dropdownOpen1 && (
             <div className="suggestions-dropdown">
-              {suggestions1.map((p) => renderSuggestion(p, selectPerson1))}
+              {suggestions1.length > 0
+                ? suggestions1.map((p) => renderSuggestion(p, selectPerson1))
+                : <div className="no-results">{labels.noResults}</div>}
             </div>
           )}
         </div>
@@ -235,9 +245,11 @@ function SearchBar({ persons, relationships, onSelectPerson, onFindRelationship,
                 placeholder={labels.person2}
                 className="search-input"
               />
-              {suggestions2.length > 0 && (
+              {dropdownOpen2 && (
                 <div className="suggestions-dropdown">
-                  {suggestions2.map((p) => renderSuggestion(p, selectPerson2))}
+                  {suggestions2.length > 0
+                    ? suggestions2.map((p) => renderSuggestion(p, selectPerson2))
+                    : <div className="no-results">{labels.noResults}</div>}
                 </div>
               )}
             </div>

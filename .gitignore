@@ -11,7 +11,15 @@ env/
 # Node/React
 frontend/node_modules/
 frontend/build/
-frontend/.env
+frontend/dist/
+
+# Environment variables / secrets - never commit these
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel
 
 # IDE
 .vscode/

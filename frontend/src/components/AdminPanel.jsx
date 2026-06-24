@@ -21,6 +21,7 @@ import {
   approveContribution,
   rejectContribution,
 } from "../api";
+import ConfirmDialog from "./ConfirmDialog";
 
 // Build a personId -> father map from parent_child relationships.
 // Used to walk the paternal lineage for ancestry-chain names.
@@ -67,6 +68,7 @@ function AdminPanel({ language, onDataChanged, onClose }) {
   const [contributions, setContributions] = useState([]);
   const [activeTab, setActiveTab] = useState("stats");
   const [message, setMessage] = useState("");
+  const [confirmRejectId, setConfirmRejectId] = useState(null);
 
   // Add person form
   const [newPerson, setNewPerson] = useState({
@@ -185,6 +187,7 @@ function AdminPanel({ language, onDataChanged, onClose }) {
   };
 
   const handleReject = async (id) => {
+    setConfirmRejectId(null);
     try {
       await rejectContribution(id);
       showMessage(isAr ? "تم الرفض" : "Rejected");
@@ -210,6 +213,16 @@ function AdminPanel({ language, onDataChanged, onClose }) {
 
   return (
     <div className="admin-overlay">
+      {confirmRejectId !== null && (
+        <ConfirmDialog
+          language={language}
+          message={isAr ? "هل أنت متأكد من رفض هذا الطلب؟" : "Are you sure you want to reject this request?"}
+          confirmLabel={isAr ? "رفض" : "Reject"}
+          cancelLabel={isAr ? "إلغاء" : "Cancel"}
+          onConfirm={() => handleReject(confirmRejectId)}
+          onCancel={() => setConfirmRejectId(null)}
+        />
+      )}
       <div className={`admin-panel ${isAr ? "rtl" : "ltr"}`}>
         <div className="admin-header">
           <h2>{isAr ? "لوحة الإدارة" : "Admin Dashboard"}</h2>
@@ -452,7 +465,7 @@ function AdminPanel({ language, onDataChanged, onClose }) {
                           </button>
                           <button
                             className="reject-btn"
-                            onClick={() => handleReject(c.id)}
+                            onClick={() => setConfirmRejectId(c.id)}
                           >
                             {isAr ? "رفض" : "Reject"}
                           </button>

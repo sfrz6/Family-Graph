@@ -31,6 +31,7 @@ from ..schemas import (
     RelationshipCreate, RelationshipResponse,
     AddChildCreate, AddSpouseCreate,
 )
+from ..dependencies import get_current_user, require_admin
 
 router = APIRouter(prefix="/api", tags=["persons"])
 
@@ -40,7 +41,7 @@ router = APIRouter(prefix="/api", tags=["persons"])
 # ========================
 
 @router.get("/persons", response_model=List[PersonResponse])
-def get_all_persons(db: Session = Depends(get_db)):
+def get_all_persons(db: Session = Depends(get_db), _user: dict = Depends(get_current_user)):
     """
     GET /api/persons
     
@@ -56,7 +57,7 @@ def get_all_persons(db: Session = Depends(get_db)):
 
 
 @router.get("/persons/{person_id}", response_model=PersonResponse)
-def get_person(person_id: int, db: Session = Depends(get_db)):
+def get_person(person_id: int, db: Session = Depends(get_db), _user: dict = Depends(get_current_user)):
     """
     GET /api/persons/5
     
@@ -72,7 +73,7 @@ def get_person(person_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/persons", response_model=PersonResponse, status_code=201)
-def create_person(person: PersonCreate, db: Session = Depends(get_db)):
+def create_person(person: PersonCreate, db: Session = Depends(get_db), _admin: dict = Depends(require_admin)):
     """
     POST /api/persons
     Body: {"name_en": "Ahmed", "name_ar": "أحمد", "gender": "male"}
@@ -102,7 +103,7 @@ def create_person(person: PersonCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/persons/add-child", status_code=201)
-def add_child(data: AddChildCreate, db: Session = Depends(get_db)):
+def add_child(data: AddChildCreate, db: Session = Depends(get_db), _admin: dict = Depends(require_admin)):
     """
     POST /api/persons/add-child
     Body: {"child_id": 3, "father_id": 1, "mother_id": 2}
@@ -189,7 +190,7 @@ def add_child(data: AddChildCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/persons/add-spouse", status_code=201)
-def add_spouse(data: AddSpouseCreate, db: Session = Depends(get_db)):
+def add_spouse(data: AddSpouseCreate, db: Session = Depends(get_db), _admin: dict = Depends(require_admin)):
     """
     POST /api/persons/add-spouse
     Body: {"person_id": 1, "spouse_id": 2}
@@ -236,6 +237,7 @@ def update_person(
     person_id: int,
     person: PersonUpdate,
     db: Session = Depends(get_db),
+    _admin: dict = Depends(require_admin),
 ):
     """
     PUT /api/persons/5
@@ -265,7 +267,7 @@ def update_person(
 
 
 @router.delete("/persons/{person_id}")
-def delete_person(person_id: int, db: Session = Depends(get_db)):
+def delete_person(person_id: int, db: Session = Depends(get_db), _admin: dict = Depends(require_admin)):
     """
     DELETE /api/persons/5
     
@@ -294,7 +296,7 @@ def delete_person(person_id: int, db: Session = Depends(get_db)):
 # ========================
 
 @router.get("/relationships", response_model=List[RelationshipResponse])
-def get_all_relationships(db: Session = Depends(get_db)):
+def get_all_relationships(db: Session = Depends(get_db), _user: dict = Depends(get_current_user)):
     """
     GET /api/relationships
     
@@ -305,7 +307,7 @@ def get_all_relationships(db: Session = Depends(get_db)):
 
 
 @router.post("/relationships", response_model=RelationshipResponse, status_code=201)
-def create_relationship(rel: RelationshipCreate, db: Session = Depends(get_db)):
+def create_relationship(rel: RelationshipCreate, db: Session = Depends(get_db), _admin: dict = Depends(require_admin)):
     """
     POST /api/relationships
     Body: {"person_id": 1, "related_person_id": 2, "relationship_type": "parent_child"}
@@ -348,7 +350,7 @@ def create_relationship(rel: RelationshipCreate, db: Session = Depends(get_db)):
 
 
 @router.delete("/relationships/{relationship_id}")
-def delete_relationship(relationship_id: int, db: Session = Depends(get_db)):
+def delete_relationship(relationship_id: int, db: Session = Depends(get_db), _admin: dict = Depends(require_admin)):
     """
     DELETE /api/relationships/3
     

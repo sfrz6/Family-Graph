@@ -10,7 +10,8 @@
  */
 
 import { useState, useEffect } from "react";
-import { getMissingRelatives, submitContribution } from "../api";
+import { getMissingRelatives, submitContribution, deletePerson } from "../api";
+import ConfirmDialog from "./ConfirmDialog";
 
 function PersonPanel({
   person,
@@ -18,6 +19,7 @@ function PersonPanel({
   relationships,
   onClose,
   onPersonClick,
+  onPersonDeleted,
   language,
   role,
 }) {
@@ -25,6 +27,8 @@ function PersonPanel({
   const [showAddForm, setShowAddForm] = useState(null); // which type: "father", "mother", etc.
   const [newRelative, setNewRelative] = useState({ name_en: "", name_ar: "", gender: "male" });
   const [message, setMessage] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const isAr = language === "ar";
 
@@ -117,6 +121,16 @@ function PersonPanel({
     }
   };
 
+  const handleDeletePerson = async () => {
+    setShowDeleteConfirm(false);
+    try {
+      await deletePerson(person.id);
+      onPersonDeleted(person.id);
+    } catch (err) {
+      setDeleteError(isAr ? "حدث خطأ أثناء الحذف" : "Error deleting person");
+    }
+  };
+
   const renderPersonList = (title, people) => {
     if (people.length === 0) return null;
     return (
@@ -146,8 +160,32 @@ function PersonPanel({
             {isAr ? person.name_en : person.name_ar}
           </p>
         </div>
-        <button className="panel-close" onClick={onClose}>✕</button>
+        <div className="panel-header-actions">
+          {role === "admin" && (
+            <button className="panel-delete-btn" onClick={() => setShowDeleteConfirm(true)}>
+              {isAr ? "حذف" : "Delete"}
+            </button>
+          )}
+          <button className="panel-close" onClick={onClose}>✕</button>
+        </div>
       </div>
+
+      {deleteError && <p className="panel-delete-error">{deleteError}</p>}
+
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          language={language}
+          message={
+            isAr
+              ? `هل أنت متأكد من حذف ${person.name_ar}؟ سيتم حذف جميع علاقاته أيضًا.`
+              : `Are you sure you want to delete ${person.name_en}? All their relationships will be removed too.`
+          }
+          confirmLabel={isAr ? "حذف" : "Delete"}
+          cancelLabel={isAr ? "إلغاء" : "Cancel"}
+          onConfirm={handleDeletePerson}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
 
       <div className="panel-body">
         {renderPersonList(labels.parents, parents)}

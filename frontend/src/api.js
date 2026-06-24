@@ -11,21 +11,43 @@
  * 3. Error handling can be centralized
  * 
  * axios.create() makes an instance with a base URL pre-configured,
- * so we just write "/persons" instead of "http://localhost:8000/api/persons"
+ * so we just write "/persons" instead of "/api/persons"
+ *
+ * baseURL is a relative path ("/api") rather than an absolute URL: in
+ * production the frontend and backend are served from the same Vercel
+ * domain, and in local dev the Vite dev server proxies "/api" to the
+ * backend (see vite.config.js) - so this works unchanged in both places.
+ *
+ * withCredentials is required so the browser sends/receives the HttpOnly
+ * session cookie set by the backend. There is no token to manage here -
+ * the cookie is invisible to JS by design.
  */
 
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8000/api",
+  baseURL: "/api",
+  withCredentials: true,
 });
 
 // ---- Auth ----
 
 export const login = async (secretCode) => {
   // POST /api/auth/login with the secret code
-  // Returns { role: "admin" } or { role: "user" }
+  // Sets an HttpOnly session cookie and returns { role: "admin" } or { role: "user" }
   const response = await api.post("/auth/login", { secret_code: secretCode });
+  return response.data;
+};
+
+export const logout = async () => {
+  // POST /api/auth/logout - clears the session cookie
+  const response = await api.post("/auth/logout");
+  return response.data;
+};
+
+export const getMe = async () => {
+  // GET /api/auth/me - returns { role } if the session cookie is still valid
+  const response = await api.get("/auth/me");
   return response.data;
 };
 

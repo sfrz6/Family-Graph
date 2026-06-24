@@ -16,6 +16,7 @@ from datetime import datetime
 from ..database import get_db
 from ..models import Person, Relationship, PendingContribution
 from ..schemas import ContributionCreate, ContributionResponse
+from ..dependencies import get_current_user, require_admin
 
 router = APIRouter(prefix="/api", tags=["contributions"])
 
@@ -25,7 +26,7 @@ router = APIRouter(prefix="/api", tags=["contributions"])
 # ========================
 
 @router.get("/admin/stats")
-def get_stats(db: Session = Depends(get_db)):
+def get_stats(db: Session = Depends(get_db), _admin: dict = Depends(require_admin)):
     """
     GET /api/admin/stats
     
@@ -101,7 +102,7 @@ def get_stats(db: Session = Depends(get_db)):
 # ========================
 
 @router.get("/persons/{person_id}/missing-relatives")
-def get_missing_relatives(person_id: int, db: Session = Depends(get_db)):
+def get_missing_relatives(person_id: int, db: Session = Depends(get_db), _user: dict = Depends(get_current_user)):
     """
     GET /api/persons/5/missing-relatives
     
@@ -152,7 +153,11 @@ def get_missing_relatives(person_id: int, db: Session = Depends(get_db)):
 # ========================
 
 @router.post("/contributions", response_model=ContributionResponse, status_code=201)
-def submit_contribution(contribution: ContributionCreate, db: Session = Depends(get_db)):
+def submit_contribution(
+    contribution: ContributionCreate,
+    db: Session = Depends(get_db),
+    _user: dict = Depends(get_current_user),
+):
     """
     POST /api/contributions
     
@@ -175,7 +180,7 @@ def submit_contribution(contribution: ContributionCreate, db: Session = Depends(
 
 
 @router.get("/contributions", response_model=List[ContributionResponse])
-def get_contributions(status: str = None, db: Session = Depends(get_db)):
+def get_contributions(status: str = None, db: Session = Depends(get_db), _admin: dict = Depends(require_admin)):
     """
     GET /api/contributions?status=pending
     
@@ -188,7 +193,7 @@ def get_contributions(status: str = None, db: Session = Depends(get_db)):
 
 
 @router.put("/contributions/{contribution_id}/approve")
-def approve_contribution(contribution_id: int, db: Session = Depends(get_db)):
+def approve_contribution(contribution_id: int, db: Session = Depends(get_db), _admin: dict = Depends(require_admin)):
     """
     PUT /api/contributions/5/approve
     
@@ -323,7 +328,7 @@ def approve_contribution(contribution_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/contributions/{contribution_id}/reject")
-def reject_contribution(contribution_id: int, db: Session = Depends(get_db)):
+def reject_contribution(contribution_id: int, db: Session = Depends(get_db), _admin: dict = Depends(require_admin)):
     """
     PUT /api/contributions/5/reject
     
