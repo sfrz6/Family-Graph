@@ -8,14 +8,7 @@
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1",
-      "headers": { "X-Robots-Tag": "noindex, nofollow" }
-    }
+    { "src": "/api/(.*)", "dest": "api/index.py" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 }
