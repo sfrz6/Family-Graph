@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Skill(run)",
+      "Bash(\"./venv/Scripts/python.exe\" -m uvicorn app.main:app --reload --port 8000)",
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:8000 >/dev/null; do sleep 1; done')",
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:5173 >/dev/null; do sleep 1; done')",
+      "Bash(curl *)",
+      "Bash(node -e \"require.resolve\\('playwright'\\)\")",
+      "Bash(npm ls *)",
+      "Bash(where npx *)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(npx playwright *)",
+      "Bash(node drive.js)",
+      "Bash(node drive2.js)",
+      "Bash(taskkill //F //IM \"node.exe\" //FI \"WINDOWTITLE eq*\")",
+      "Bash(netstat -ano)",
+      "Bash(taskkill *)",
+      "Bash(\"./venv/Scripts/python.exe\" -m uvicorn app.main:app --port 8000)",
+      "Bash(timeout 20 bash -c 'until curl -sf http://localhost:8000 >/dev/null; do sleep 1; done')",
+      "Bash(timeout 20 bash -c 'until curl -sf http://localhost:5173 >/dev/null; do sleep 1; done')",
+      "Bash(node drive3.js)",
+      "Bash(node drive4.js)",
+      "Bash(./venv/Scripts/python.exe -c ' *)",
+      "Bash(node drive5.js)",
+      "Bash(\"./venv/Scripts/python.exe\" -m uvicorn app.main:app --port 8001)",
+      "Bash(timeout 20 bash -c 'until curl -sf http://localhost:8001 >/dev/null; do sleep 1; done')",
+      "Bash(python3 -c ' *)",
+      "Bash(\"./venv/Scripts/python.exe\" -c \"import ast; ast.parse\\(open\\('app/relationship_finder.py', encoding='utf-8'\\).read\\(\\)\\); ast.parse\\(open\\('app/routes/contributions.py', encoding='utf-8'\\).read\\(\\)\\); print\\('syntax ok'\\)\")",
+      "Bash(node drive_tree.js)",
+      "Bash(node drive_search.js)",
+      "Bash(node drive_layout.js)",
+      "Bash(node check_sulaiman.js)",
+      "Bash(node drive_relpath.js)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(wsl -l -v 2>&1)",
+      "PowerShell(Stop-Process *)"
+    ]
+  }
+}
