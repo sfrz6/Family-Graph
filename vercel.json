@@ -14,7 +14,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/$1",
+      "dest": "/frontend/dist/$1",
       "headers": { "X-Robots-Tag": "noindex, nofollow" }
     }
   ]
