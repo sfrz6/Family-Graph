@@ -21,21 +21,28 @@ Neon Postgres database.
 ## Project layout
 
 ```
-api/
-  index.py          # Vercel serverless entrypoint (imports app.main:app)
-  app/
-    main.py         # FastAPI app, CORS, route registration
-    config.py       # Reads & validates required environment variables
-    database.py     # SQLAlchemy engine/session (Postgres)
-    auth_utils.py   # JWT creation/verification
-    dependencies.py # get_current_user / require_admin FastAPI dependencies
-    models.py, schemas.py, relationship_finder.py
-    routes/         # auth, persons, relationship, contributions
-frontend/           # Vite + React app
-requirements.txt    # Python deps (repo root, required by Vercel's Python builder)
-vercel.json         # Build + routing config for the monorepo
-.env.example         # Variable names only - copy to .env and fill in locally
+frontend/            # This is the Vercel project's Root Directory setting
+  api/
+    index.py         # Vercel serverless entrypoint (imports api.app.main:app)
+    app/
+      main.py         # FastAPI app, CORS, route registration
+      config.py       # Reads & validates required environment variables
+      database.py     # SQLAlchemy engine/session (Postgres)
+      auth_utils.py   # JWT creation/verification
+      dependencies.py # get_current_user / require_admin FastAPI dependencies
+      models.py, schemas.py, relationship_finder.py
+      routes/          # auth, persons, relationship, contributions
+  requirements.txt   # Python deps for the api/ function
+  vercel.json         # /api/* rewrite + noindex header
+  src/, public/, vite.config.js, package.json  # the React app itself
+.env.example          # Variable names only - copy to .env (at the repo root) and fill in locally
 ```
+
+`api/` lives inside `frontend/` (not at the repo root) because Vercel's
+Project Settings has **Root Directory** set to `frontend` - that's what
+makes Vercel auto-detect both the Vite app and the Python function
+automatically, instead of needing a manually-written `builds`/`routes`
+config to wire two separate build systems together.
 
 ## Environment variables
 
@@ -58,7 +65,7 @@ error if `DATABASE_URL`, `JWT_SECRET`, `USER_ACCESS_CODE`, or
 ### 1. Backend
 
 ```bash
-cd api
+cd frontend/api
 python -m venv venv
 venv\Scripts\activate          # Windows
 # source venv/bin/activate     # macOS/Linux
@@ -80,12 +87,12 @@ You need a real Postgres database even for local dev - the free Neon project
 from the deployment steps below works fine for this too (or run a local
 Postgres if you prefer).
 
-`python-dotenv`'s `load_dotenv()` walks upward from `api/app/config.py`
+`python-dotenv`'s `load_dotenv()` walks upward from `frontend/api/app/config.py`
 looking for a `.env` file, so it finds the repo-root one automatically
 regardless of which directory you launch uvicorn from:
 
 ```bash
-cd api
+cd frontend/api
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -122,11 +129,13 @@ Open `http://localhost:5173`.
 ### 2. Deploy to Vercel
 
 1. Push this repo to GitHub.
-2. In Vercel, "Add New Project" -> import the repo. Vercel will read
-   `vercel.json` at the repo root, which builds both the frontend
-   (`@vercel/static-build`) and the API (`@vercel/python`, entry at
-   `api/index.py`) as part of one deployment.
-3. In Project Settings -> Environment Variables, add all six variables from
+2. In Vercel, "Add New Project" -> import the repo.
+3. On the import screen (or afterwards in Settings -> General), set
+   **Root Directory** to `frontend`. This is what makes Vercel
+   auto-detect the Vite app and the `api/index.py` Python function
+   together, instead of needing a manually-written `builds`/`routes`
+   config to stitch two separate root-level directories together.
+4. In Project Settings -> Environment Variables, add all six variables from
    the table above:
    - `DATABASE_URL` - from Neon
    - `USER_ACCESS_CODE` / `ADMIN_ACCESS_CODE` - your chosen login codes
@@ -134,18 +143,14 @@ Open `http://localhost:5173`.
      local dev one)
    - `ENVIRONMENT=production`
    - `FRONTEND_URL` - your Vercel deployment URL, e.g.
-     `https://your-project.vercel.app`
-4. Deploy.
+     `https://your-project.vercel.app` (you won't know this until after the
+     first deploy - set a placeholder, then come back and update it once you
+     have the real URL, followed by a redeploy)
+5. Deploy.
 
 Because the frontend and API are served from the same Vercel domain, requests
 from the browser to `/api/*` are same-origin in production - the session
 cookie just works, no cross-origin cookie complications.
-
-If the first deploy 404s on static assets, check the Vercel build logs for
-where `@vercel/static-build` actually mounted the frontend's `dist/` output
-and adjust the catch-all `dest` in `vercel.json` accordingly (this is a
-common one-time tweak for Python+static monorepos on Vercel and isn't
-something that can be fully verified without a live deploy).
 
 ### 3. Verify
 
