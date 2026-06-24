@@ -1,14 +1,21 @@
 {
-  "installCommand": "cd frontend && npm install",
-  "buildCommand": "cd frontend && npm run build",
-  "outputDirectory": "frontend/dist",
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" }
-  ],
-  "headers": [
+  "builds": [
+    { "src": "api/index.py", "use": "@vercel/python" },
     {
-      "source": "/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "api/index.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1",
+      "headers": { "X-Robots-Tag": "noindex, nofollow" }
     }
   ]
 }
