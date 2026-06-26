@@ -321,6 +321,12 @@ def approve_contribution(contribution_id: int, db: Session = Depends(get_db), _a
                     relationship_type="parent_child",
                 ))
 
+    elif contribution.contribution_type == "mark_deceased":
+        person = db.query(Person).filter(Person.id == data["person_id"]).first()
+        if not person:
+            raise HTTPException(status_code=404, detail="Person not found")
+        person.is_deceased = True
+
     contribution.status = "approved"
     contribution.reviewed_at = datetime.utcnow()
     db.commit()

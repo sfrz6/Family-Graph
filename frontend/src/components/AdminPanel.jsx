@@ -15,6 +15,7 @@ import {
   getPersons,
   getRelationships,
   createPerson,
+  updatePerson,
   addChild,
   addSpouse,
   getContributions,
@@ -75,7 +76,12 @@ function AdminPanel({ language, onDataChanged, onClose }) {
     name_en: "",
     name_ar: "",
     gender: "male",
+    generation: "",
   });
+
+  // Edit person form
+  const [editPersonId, setEditPersonId] = useState("");
+  const [editPerson, setEditPerson] = useState({ name_en: "", name_ar: "", gender: "male", generation: "" });
 
   // Link child form
   const [childLink, setChildLink] = useState({
@@ -121,17 +127,45 @@ function AdminPanel({ language, onDataChanged, onClose }) {
   };
 
   const handleAddPerson = async () => {
-    if (!newPerson.name_en || !newPerson.name_ar) {
-      showMessage(isAr ? "يرجى ملء جميع الحقول" : "Please fill all fields");
+    if (!newPerson.name_ar) {
+      showMessage(isAr ? "يرجى إدخال الاسم بالعربي" : "Arabic name is required");
       return;
     }
     try {
-      await createPerson(newPerson);
-      setNewPerson({ name_en: "", name_ar: "", gender: "male" });
+      await createPerson({
+        ...newPerson,
+        generation: newPerson.generation !== "" ? Number(newPerson.generation) : null,
+      });
+      setNewPerson({ name_en: "", name_ar: "", gender: "male", generation: "" });
       showMessage(isAr ? "تمت الإضافة بنجاح ✓" : "Person added ✓");
       loadData();
       onDataChanged();
     } catch (err) {
+      showMessage(isAr ? "حدث خطأ" : "Error occurred");
+    }
+  };
+
+  const handleEditPersonSelect = (id) => {
+    setEditPersonId(id);
+    if (!id) { setEditPerson({ name_en: "", name_ar: "", gender: "male", generation: "" }); return; }
+    const p = persons.find((x) => x.id === Number(id));
+    if (p) setEditPerson({ name_en: p.name_en || "", name_ar: p.name_ar || "", gender: p.gender, generation: p.generation ?? "" });
+  };
+
+  const handleUpdatePerson = async () => {
+    if (!editPersonId) { showMessage(isAr ? "يرجى اختيار شخص" : "Please select a person"); return; }
+    if (!editPerson.name_ar) { showMessage(isAr ? "يرجى إدخال الاسم بالعربي" : "Arabic name is required"); return; }
+    try {
+      await updatePerson(Number(editPersonId), {
+        name_en: editPerson.name_en || "",
+        name_ar: editPerson.name_ar,
+        gender: editPerson.gender,
+        generation: editPerson.generation !== "" ? Number(editPerson.generation) : null,
+      });
+      showMessage(isAr ? "تم التحديث بنجاح ✓" : "Updated ✓");
+      loadData();
+      onDataChanged();
+    } catch {
       showMessage(isAr ? "حدث خطأ" : "Error occurred");
     }
   };
@@ -202,8 +236,8 @@ function AdminPanel({ language, onDataChanged, onClose }) {
   const females = persons.filter((p) => p.gender === "female");
 
   const tabs = isAr
-    ? { stats: "إحصائيات", add: "إضافة شخص", link: "ربط الأبناء", spouse: "ربط الزوج/الزوجة", contributions: "الطلبات" }
-    : { stats: "Statistics", add: "Add Person", link: "Link Child", spouse: "Link Spouse", contributions: "Requests" };
+    ? { stats: "إحصائيات", add: "إضافة شخص", edit: "تعديل شخص", link: "ربط الأبناء", spouse: "ربط الزوج/الزوجة", contributions: "الطلبات" }
+    : { stats: "Statistics", add: "Add Person", edit: "Edit Person", link: "Link Child", spouse: "Link Spouse", contributions: "Requests" };
 
   const relationLabels = isAr
     ? { father: "أب", mother: "أم", spouse: "زوج/زوجة", child: "ابن/بنت", sibling: "أخ/أخت" }
@@ -312,9 +346,87 @@ function AdminPanel({ language, onDataChanged, onClose }) {
                   <option value="female">{isAr ? "أنثى" : "Female"}</option>
                 </select>
               </div>
+              <div className="form-group">
+                <label>{isAr ? "الجيل (رقم الصف في الشجرة)" : "Generation (row in tree)"}</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={newPerson.generation}
+                  onChange={(e) => setNewPerson({ ...newPerson, generation: e.target.value })}
+                  placeholder={isAr ? "مثال: 1 = أقدم جد، 2 = أب، 3 = ابن..." : "e.g. 1 = oldest ancestor, 2 = parent, 3 = child..."}
+                  className="form-input"
+                />
+              </div>
               <button className="form-submit" onClick={handleAddPerson}>
                 {isAr ? "إضافة" : "Add Person"}
               </button>
+            </div>
+          )}
+
+          {/* EDIT PERSON TAB */}
+          {activeTab === "edit" && (
+            <div className="admin-form">
+              <div className="form-group">
+                <label>{isAr ? "اختر شخصاً للتعديل" : "Select person to edit"}</label>
+                <select
+                  value={editPersonId}
+                  onChange={(e) => handleEditPersonSelect(e.target.value)}
+                  className="form-input"
+                >
+                  <option value="">{isAr ? "اختر..." : "Select..."}</option>
+                  {persons.map((p) => (
+                    <option key={p.id} value={p.id}>{getChain(p)}</option>
+                  ))}
+                </select>
+              </div>
+              {editPersonId && (
+                <>
+                  <div className="form-group">
+                    <label>{isAr ? "الاسم بالعربي" : "Arabic Name"}</label>
+                    <input
+                      type="text"
+                      value={editPerson.name_ar}
+                      onChange={(e) => setEditPerson({ ...editPerson, name_ar: e.target.value })}
+                      className="form-input"
+                      dir="rtl"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{isAr ? "الاسم بالإنجليزي (اختياري)" : "English Name (optional)"}</label>
+                    <input
+                      type="text"
+                      value={editPerson.name_en}
+                      onChange={(e) => setEditPerson({ ...editPerson, name_en: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{isAr ? "الجنس" : "Gender"}</label>
+                    <select
+                      value={editPerson.gender}
+                      onChange={(e) => setEditPerson({ ...editPerson, gender: e.target.value })}
+                      className="form-input"
+                    >
+                      <option value="male">{isAr ? "ذكر" : "Male"}</option>
+                      <option value="female">{isAr ? "أنثى" : "Female"}</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>{isAr ? "الجيل (رقم الصف في الشجرة)" : "Generation (row in tree)"}</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editPerson.generation}
+                      onChange={(e) => setEditPerson({ ...editPerson, generation: e.target.value })}
+                      placeholder={isAr ? "مثال: 1 = أقدم جد..." : "e.g. 1 = oldest ancestor..."}
+                      className="form-input"
+                    />
+                  </div>
+                  <button className="form-submit" onClick={handleUpdatePerson}>
+                    {isAr ? "حفظ التعديلات" : "Save Changes"}
+                  </button>
+                </>
+              )}
             </div>
           )}
 
@@ -414,14 +526,13 @@ function AdminPanel({ language, onDataChanged, onClose }) {
                   try { data = JSON.parse(c.data); } catch {}
 
                   const isRelative = c.contribution_type === "add_relative";
+                  const isDeceased = c.contribution_type === "mark_deceased";
                   const requestedName = isAr
                     ? data.name_ar || data.name_en || ""
                     : data.name_en || data.name_ar || "";
-                  const originalPerson = isRelative && data.person_id
+                  const originalPerson = (isRelative || isDeceased) && data.person_id
                     ? persons.find((p) => p.id === data.person_id)
                     : null;
-                  // person_name is an Arabic-only snapshot taken at submission time,
-                  // used as a fallback if the original person was since removed.
                   const originalName = originalPerson
                     ? getChain(originalPerson)
                     : data.person_name || (isAr ? "غير معروف" : "Unknown");
@@ -433,11 +544,15 @@ function AdminPanel({ language, onDataChanged, onClose }) {
                     <div key={c.id} className={`contribution-item ${c.status}`}>
                       <div className="contribution-info">
                         <span className="contribution-type">
-                          {isRelative
+                          {isDeceased
+                            ? (isAr ? "إبلاغ عن وفاة" : "Report Deceased")
+                            : isRelative
                             ? (isAr ? "إضافة قريب" : "Add Relative")
                             : (isAr ? "إضافة شخص" : "Add Person")}
                         </span>
-                        {isRelative ? (
+                        {isDeceased ? (
+                          <span className="contribution-detail">{originalName}</span>
+                        ) : isRelative ? (
                           <span className="contribution-detail">
                             {originalName} → {requestedName}
                             {relationLabel && (

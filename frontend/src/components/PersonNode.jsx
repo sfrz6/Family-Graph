@@ -22,17 +22,16 @@ function PersonNode({ data, selected }) {
     <div
       className={`person-node ${isMale ? "male" : "female"} ${
         selected ? "selected" : ""
-      } ${data.highlighted ? "highlighted" : ""}`}
+      } ${data.highlighted ? "highlighted" : ""} ${data.is_deceased ? "deceased" : ""}`}
     >
-      {/* Top handle — where parent edges connect */}
       <Handle type="target" position={Position.Top} className="node-handle" />
 
       <div className="node-content">
-        <div className="node-name-en">{data.name_en}</div>
+        {data.name_en && <div className="node-name-en">{data.name_en}</div>}
         <div className="node-name-ar">{data.name_ar}</div>
+        {data.is_deceased && <div className="node-deceased-label">✦</div>}
       </div>
 
-      {/* Bottom handle — where child edges connect */}
       <Handle type="source" position={Position.Bottom} className="node-handle" />
     </div>
   );

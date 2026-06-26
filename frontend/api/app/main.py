@@ -14,6 +14,7 @@ and --reload means restart automatically when I change code."
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from .config import ALLOWED_ORIGINS
 from .database import engine, Base
@@ -22,6 +23,13 @@ from .routes import auth, persons, relationship, contributions
 # Create all database tables based on our models.
 # If the tables already exist, this does nothing — safe to call every time.
 Base.metadata.create_all(bind=engine)
+
+# Add any columns introduced after the initial schema creation.
+# ADD COLUMN IF NOT EXISTS is idempotent — safe to run on every cold start.
+with engine.connect() as _conn:
+    _conn.execute(text("ALTER TABLE persons ADD COLUMN IF NOT EXISTS generation INTEGER"))
+    _conn.execute(text("ALTER TABLE persons ADD COLUMN IF NOT EXISTS is_deceased BOOLEAN DEFAULT FALSE"))
+    _conn.commit()
 
 # Create the FastAPI application instance.
 app = FastAPI(

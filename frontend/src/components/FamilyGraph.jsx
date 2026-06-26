@@ -48,7 +48,7 @@ function calculateGenerations(persons, relationships) {
 
   const roots = persons.filter((p) => parentsOf[p.id].length === 0);
   const generations = {};
-  const queue = roots.map((r) => ({ id: r.id, gen: 0 }));
+  const queue = roots.map((r) => ({ id: r.id, gen: 1 })); // 1-indexed: oldest ancestor = 1
   const visited = new Set();
 
   while (queue.length > 0) {
@@ -60,7 +60,16 @@ function calculateGenerations(persons, relationships) {
       if (!visited.has(childId)) queue.push({ id: childId, gen: gen + 1 });
     });
   }
-  persons.forEach((p) => { if (generations[p.id] === undefined) generations[p.id] = 0; });
+
+  // Stored generation takes priority over BFS — lets admins pin a person
+  // to the correct row even before parent links are set up.
+  persons.forEach((p) => {
+    if (p.generation != null) {
+      generations[p.id] = p.generation;
+    } else if (generations[p.id] === undefined) {
+      generations[p.id] = 1;
+    }
+  });
   return generations;
 }
 
@@ -99,7 +108,7 @@ function buildGraphData(persons, relationships, highlightedPath = [], layoutPosi
       const total = group.length;
       const startX = -(total - 1) * HORIZONTAL_SPACING * 0.5;
       const x = startX + idx * HORIZONTAL_SPACING + (spouseAdj[p.id] || 0);
-      const y = gen * VERTICAL_SPACING;
+      const y = (gen - 1) * VERTICAL_SPACING; // gen 1 → y=0, gen 2 → y=160, etc.
       return { x, y };
     };
   }

@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import LoginPage from "./components/LoginPage";
 import FamilyGraph from "./components/FamilyGraph";
 import { getMe, logout as apiLogout } from "./api";
@@ -47,12 +48,15 @@ function App() {
   }
 
   return (
-    <FamilyGraph
-      role={role}
-      onLogout={handleLogout}
-      language={language}
-      setLanguage={setLanguage}
-    />
+    <>
+      <FamilyGraph
+        role={role}
+        onLogout={handleLogout}
+        language={language}
+        setLanguage={setLanguage}
+      />
+      <Analytics />
+    </>
   );
 }
 

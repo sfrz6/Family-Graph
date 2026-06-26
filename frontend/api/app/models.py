@@ -11,7 +11,7 @@ We have three tables:
 3. PendingContribution — stores user suggestions waiting for admin approval
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.sql import func
 
 from .database import Base
@@ -34,6 +34,8 @@ class Person(Base):
     name_en = Column(String, nullable=False)       # English name — required
     name_ar = Column(String, nullable=False)       # Arabic name — required
     gender = Column(String, nullable=False)         # "male" or "female"
+    generation = Column(Integer, nullable=True)    # explicit row in the tree (1 = oldest ancestor)
+    is_deceased = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
 
 

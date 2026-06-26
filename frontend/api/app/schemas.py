@@ -50,9 +50,10 @@ class PersonCreate(BaseModel):
     What the API expects when someone wants to ADD a new person.
     Only the essential fields — id and timestamps are generated automatically.
     """
-    name_en: str
+    name_en: str = ""
     name_ar: str
     gender: Gender
+    generation: Optional[int] = None
 
 
 class PersonUpdate(BaseModel):
@@ -63,13 +64,15 @@ class PersonUpdate(BaseModel):
     name_en: Optional[str] = None
     name_ar: Optional[str] = None
     gender: Optional[Gender] = None
+    generation: Optional[int] = None
+    is_deceased: Optional[bool] = None
 
 
 class PersonResponse(BaseModel):
     """
     What the API RETURNS when you ask for a person.
     Includes everything: the auto-generated id and timestamp too.
-    
+
     model_config with from_attributes=True tells Pydantic to read data
     from SQLAlchemy model objects, not just dictionaries.
     """
@@ -77,6 +80,8 @@ class PersonResponse(BaseModel):
     name_en: str
     name_ar: str
     gender: str
+    generation: Optional[int] = None
+    is_deceased: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}

@@ -95,6 +95,7 @@ def create_person(person: PersonCreate, db: Session = Depends(get_db), _admin: d
         name_en=person.name_en,
         name_ar=person.name_ar,
         gender=person.gender.value,
+        generation=person.generation,
     )
     db.add(db_person)
     db.commit()

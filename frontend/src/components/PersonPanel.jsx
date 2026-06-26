@@ -29,6 +29,7 @@ function PersonPanel({
   const [message, setMessage] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [deceasedSubmitted, setDeceasedSubmitted] = useState(false);
 
   const isAr = language === "ar";
 
@@ -37,6 +38,7 @@ function PersonPanel({
       loadMissing();
       setShowAddForm(null);
       setMessage("");
+      setDeceasedSubmitted(false);
     }
   }, [person?.id]);
 
@@ -97,8 +99,8 @@ function PersonPanel({
   };
 
   const handleSubmitRelative = async () => {
-    if (!newRelative.name_en || !newRelative.name_ar) {
-      setMessage(isAr ? "يرجى ملء جميع الحقول" : "Please fill all fields");
+    if (!newRelative.name_ar) {
+      setMessage(isAr ? "يرجى إدخال الاسم بالعربي" : "Arabic name is required");
       return;
     }
     try {
@@ -131,6 +133,19 @@ function PersonPanel({
     }
   };
 
+  const handleReportDeceased = async () => {
+    try {
+      await submitContribution({
+        contribution_type: "mark_deceased",
+        data: JSON.stringify({ person_id: person.id, person_name: person.name_ar }),
+      });
+      setDeceasedSubmitted(true);
+      setMessage(isAr ? "تم إرسال الطلب ✓ سيتم مراجعته من قبل المسؤول" : "Request submitted ✓ Admin will review it");
+    } catch {
+      setMessage(isAr ? "حدث خطأ" : "Error occurred");
+    }
+  };
+
   const renderPersonList = (title, people) => {
     if (people.length === 0) return null;
     return (
@@ -155,7 +170,12 @@ function PersonPanel({
     <div className={`person-panel ${isAr ? "rtl" : "ltr"}`}>
       <div className="panel-header">
         <div>
-          <h2 className="panel-name">{getName(person)}</h2>
+          <h2 className="panel-name">
+            {getName(person)}
+            {person.is_deceased && (
+              <span className="panel-deceased-badge">{isAr ? " (متوفى)" : " (deceased)"}</span>
+            )}
+          </h2>
           <p className="panel-name-secondary">
             {isAr ? person.name_en : person.name_ar}
           </p>
@@ -192,6 +212,19 @@ function PersonPanel({
         {renderPersonList(labels.spouse, spouses)}
         {renderPersonList(labels.children, children)}
         {renderPersonList(labels.siblings, uniqueSiblings)}
+
+        {/* REPORT DECEASED SECTION — users only, only if not already deceased */}
+        {role === "user" && !person.is_deceased && (
+          <div className="panel-section panel-deceased-section">
+            {!deceasedSubmitted ? (
+              <button className="report-deceased-btn" onClick={handleReportDeceased}>
+                {isAr ? "الإبلاغ عن وفاة" : "Report as Deceased"}
+              </button>
+            ) : (
+              <p className="panel-message">{message}</p>
+            )}
+          </div>
+        )}
 
         {/* ADD RELATIVE SECTION */}
         <div className="panel-section panel-add-section">
