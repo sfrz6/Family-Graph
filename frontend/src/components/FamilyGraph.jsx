@@ -228,37 +228,125 @@ function buildDepthOneLayout(centeredId, persons, relationships) {
   return positions;
 }
 
-// Males-only view for the initial tree, before any node has been clicked.
-// Excludes males who have a mother in the system but no father — they belong
-// to the family through the maternal side and would appear disconnected/at the
-// wrong generation in a paternal-lineage tree.
+// Males-only view for the initial tree.
+// Only includes males reachable from a generation-1 root (no parents)
+// through an unbroken chain of male→male_child links.
+// Males whose paternal chain is broken (e.g. only a mother in the system)
+// are excluded — they appear correctly in the clicked/search expanded view.
 function getMalesView(persons, relationships) {
   const personMap = {};
   persons.forEach((p) => { personMap[p.id] = p; });
 
   const parentsOf = {};
-  persons.forEach((p) => { parentsOf[p.id] = []; });
+  const childrenOf = {};
+  persons.forEach((p) => { parentsOf[p.id] = []; childrenOf[p.id] = []; });
   relationships
     .filter((r) => r.relationship_type === "parent_child")
     .forEach((r) => {
       if (parentsOf[r.related_person_id]) parentsOf[r.related_person_id].push(r.person_id);
+      if (childrenOf[r.person_id]) childrenOf[r.person_id].push(r.related_person_id);
     });
 
-  const males = persons.filter((p) => {
-    if (p.gender !== "male") return false;
-    const parentIds = parentsOf[p.id] || [];
-    // Has parents in the system but none are male → mother-only, skip
-    if (parentIds.length > 0 && !parentIds.some((pid) => personMap[pid]?.gender === "male")) {
-      return false;
+  // BFS from gen-1 male roots → propagate only through male children
+  const validMaleIds = new Set();
+  const queue = [];
+  persons.forEach((p) => {
+    if (p.gender === "male" && parentsOf[p.id].length === 0) {
+      validMaleIds.add(p.id);
+      queue.push(p.id);
     }
-    return true;
   });
 
+  let qi = 0;
+  while (qi < queue.length) {
+    const id = queue[qi++];
+    (childrenOf[id] || []).forEach((childId) => {
+      const child = personMap[childId];
+      if (child && child.gender === "male" && !validMaleIds.has(childId)) {
+        validMaleIds.add(childId);
+        queue.push(childId);
+      }
+    });
+  }
+
+  const males = persons.filter((p) => p.gender === "male" && validMaleIds.has(p.id));
   const maleIds = new Set(males.map((p) => p.id));
   return {
     persons: males,
     relationships: relationships.filter((r) => maleIds.has(r.person_id) && maleIds.has(r.related_person_id)),
   };
+}
+
+// Expanded view centered on one person — 5 rows:
+//   Row 0 — grandparents (parents of parents)
+//   Row 1 — parents
+//   Row 2 — centered person + their spouses / ex-spouses
+//   Row 3 — children
+//   Row 4 — grandchildren (children of children)
+function buildExpandedView(centeredId, allPersons, allRelationships) {
+  const personMap = {};
+  allPersons.forEach((p) => { personMap[p.id] = p; });
+
+  const parentsOf = {};
+  const childrenOf = {};
+  const partnersOf = {};
+  allPersons.forEach((p) => { parentsOf[p.id] = []; childrenOf[p.id] = []; partnersOf[p.id] = []; });
+
+  allRelationships.forEach((r) => {
+    if (r.relationship_type === "parent_child") {
+      if (parentsOf[r.related_person_id]) parentsOf[r.related_person_id].push(r.person_id);
+      if (childrenOf[r.person_id]) childrenOf[r.person_id].push(r.related_person_id);
+    } else if (r.relationship_type === "spouse" || r.relationship_type === "divorced") {
+      if (partnersOf[r.person_id]) partnersOf[r.person_id].push(r.related_person_id);
+      if (partnersOf[r.related_person_id]) partnersOf[r.related_person_id].push(r.person_id);
+    }
+  });
+
+  const myPartners  = partnersOf[centeredId] || [];
+  const myParents   = parentsOf[centeredId]   || [];
+  const myChildren  = childrenOf[centeredId]  || [];
+
+  const grandparents = [];
+  myParents.forEach((pid) => {
+    (parentsOf[pid] || []).forEach((gpId) => {
+      if (!grandparents.includes(gpId)) grandparents.push(gpId);
+    });
+  });
+
+  const grandchildren = [];
+  myChildren.forEach((cid) => {
+    (childrenOf[cid] || []).forEach((gcId) => {
+      if (!grandchildren.includes(gcId)) grandchildren.push(gcId);
+    });
+  });
+
+  const includedIds = new Set([
+    centeredId, ...myPartners, ...myParents, ...grandparents,
+    ...myChildren, ...grandchildren,
+  ]);
+
+  const displayPersons = allPersons.filter((p) => includedIds.has(p.id));
+  const displayRels = allRelationships.filter(
+    (r) => includedIds.has(r.person_id) && includedIds.has(r.related_person_id)
+  );
+
+  const H = 200;
+  const V = 160;
+  const positions = {};
+
+  const layoutRow = (ids, y) => {
+    const valid = ids.filter((id) => personMap[id]);
+    const startX = -(valid.length - 1) * H * 0.5;
+    valid.forEach((id, i) => { positions[id] = { x: startX + i * H, y }; });
+  };
+
+  layoutRow(grandparents,               0);
+  layoutRow(myParents,                  V);
+  layoutRow([centeredId, ...myPartners], V * 2);
+  layoutRow(myChildren,                 V * 3);
+  layoutRow(grandchildren,              V * 4);
+
+  return { persons: displayPersons, relationships: displayRels, positions };
 }
 
 // BFS for path (kept for highlighting)
@@ -333,11 +421,10 @@ function FamilyGraphInner({ role, onLogout, language, setLanguage }) {
 
     if (userMode === "tree") {
       if (centeredPersonId) {
-        // A node has been clicked - narrow to its depth-1 relatives
-        const view = getDepthOne(centeredPersonId, persons, relationships);
+        const view = buildExpandedView(centeredPersonId, persons, relationships);
         displayPersons = view.persons;
         displayRels = view.relationships;
-        layoutPositions = buildDepthOneLayout(centeredPersonId, view.persons, view.relationships);
+        layoutPositions = view.positions;
       } else {
         // Nothing clicked yet - initial males-only tree
         const view = getMalesView(persons, relationships);
@@ -345,11 +432,10 @@ function FamilyGraphInner({ role, onLogout, language, setLanguage }) {
         displayRels = view.relationships;
       }
     } else if (userMode === "search" && centeredPersonId) {
-      // Depth-1 neighborhood
-      const view = getDepthOne(centeredPersonId, persons, relationships);
+      const view = buildExpandedView(centeredPersonId, persons, relationships);
       displayPersons = view.persons;
       displayRels = view.relationships;
-      layoutPositions = buildDepthOneLayout(centeredPersonId, view.persons, view.relationships);
+      layoutPositions = view.positions;
     }
 
     if (relationshipResult?.path?.length > 0) {
