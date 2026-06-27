@@ -87,6 +87,13 @@ export const addSpouse = async (spouseData) => {
   return response.data;
 };
 
+export const addDivorce = async (divorceData) => {
+  // POST /api/persons/add-divorce
+  // { person_id, spouse_id } — removes spouse link, adds divorced link
+  const response = await api.post("/persons/add-divorce", divorceData);
+  return response.data;
+};
+
 export const updatePerson = async (id, personData) => {
   // PUT /api/persons/5 with fields to update
   const response = await api.put(`/persons/${id}`, personData);

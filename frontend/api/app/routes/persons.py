@@ -29,7 +29,7 @@ from ..models import Person, Relationship
 from ..schemas import (
     PersonCreate, PersonUpdate, PersonResponse,
     RelationshipCreate, RelationshipResponse,
-    AddChildCreate, AddSpouseCreate,
+    AddChildCreate, AddSpouseCreate, AddDivorceCreate,
 )
 from ..dependencies import get_current_user, require_admin
 
@@ -231,6 +231,62 @@ def add_spouse(data: AddSpouseCreate, db: Session = Depends(get_db), _admin: dic
     db.commit()
 
     return {"detail": "Spouse relationship created"}
+
+
+@router.post("/persons/add-divorce", status_code=201)
+def add_divorce(data: AddDivorceCreate, db: Session = Depends(get_db), _admin: dict = Depends(require_admin)):
+    """
+    POST /api/persons/add-divorce
+    Body: {"person_id": 1, "spouse_id": 2}
+
+    Marks two people as divorced:
+    1. Removes any existing spouse relationship between them.
+    2. Creates a divorced relationship (shown as a yellow edge).
+    """
+    person = db.query(Person).filter(Person.id == data.person_id).first()
+    spouse = db.query(Person).filter(Person.id == data.spouse_id).first()
+
+    if not person or not spouse:
+        raise HTTPException(status_code=404, detail="One or both persons not found")
+
+    if data.person_id == data.spouse_id:
+        raise HTTPException(status_code=400, detail="Cannot divorce oneself")
+
+    # Check for existing divorced relationship (in either direction)
+    existing_divorced = db.query(Relationship).filter(
+        Relationship.relationship_type == "divorced",
+        (
+            (Relationship.person_id == data.person_id) &
+            (Relationship.related_person_id == data.spouse_id)
+        ) | (
+            (Relationship.person_id == data.spouse_id) &
+            (Relationship.related_person_id == data.person_id)
+        )
+    ).first()
+
+    if existing_divorced:
+        raise HTTPException(status_code=400, detail="Divorce relationship already exists")
+
+    # Remove existing spouse relationship (in either direction)
+    db.query(Relationship).filter(
+        Relationship.relationship_type == "spouse",
+        (
+            (Relationship.person_id == data.person_id) &
+            (Relationship.related_person_id == data.spouse_id)
+        ) | (
+            (Relationship.person_id == data.spouse_id) &
+            (Relationship.related_person_id == data.person_id)
+        )
+    ).delete()
+
+    db.add(Relationship(
+        person_id=data.person_id,
+        related_person_id=data.spouse_id,
+        relationship_type="divorced",
+    ))
+    db.commit()
+
+    return {"detail": "Divorce relationship created"}
 
 
 @router.put("/persons/{person_id}", response_model=PersonResponse)

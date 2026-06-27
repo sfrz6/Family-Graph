@@ -18,6 +18,7 @@ import {
   updatePerson,
   addChild,
   addSpouse,
+  addDivorce,
   getContributions,
   approveContribution,
   rejectContribution,
@@ -172,6 +173,12 @@ function AdminPanel({ language, onDataChanged, onClose }) {
     spouse_id: "",
   });
 
+  // Divorce form
+  const [divorceLink, setDivorceLink] = useState({
+    person_id: "",
+    spouse_id: "",
+  });
+
   const isAr = language === "ar";
 
   useEffect(() => {
@@ -285,6 +292,25 @@ function AdminPanel({ language, onDataChanged, onClose }) {
     }
   };
 
+  const handleAddDivorce = async () => {
+    if (!divorceLink.person_id || !divorceLink.spouse_id) {
+      showMessage(isAr ? "يرجى اختيار الشخصين" : "Please select both persons");
+      return;
+    }
+    try {
+      await addDivorce({
+        person_id: Number(divorceLink.person_id),
+        spouse_id: Number(divorceLink.spouse_id),
+      });
+      setDivorceLink({ person_id: "", spouse_id: "" });
+      showMessage(isAr ? "تم تسجيل الطلاق ✓" : "Divorce recorded ✓");
+      loadData();
+      onDataChanged();
+    } catch (err) {
+      showMessage(err.response?.data?.detail || "Error");
+    }
+  };
+
   const handleApprove = async (id) => {
     try {
       await approveContribution(id);
@@ -312,8 +338,8 @@ function AdminPanel({ language, onDataChanged, onClose }) {
   const females = persons.filter((p) => p.gender === "female");
 
   const tabs = isAr
-    ? { stats: "إحصائيات", add: "إضافة شخص", edit: "تعديل شخص", link: "ربط الأبناء", spouse: "ربط الزوج/الزوجة", contributions: "الطلبات" }
-    : { stats: "Statistics", add: "Add Person", edit: "Edit Person", link: "Link Child", spouse: "Link Spouse", contributions: "Requests" };
+    ? { stats: "إحصائيات", add: "إضافة شخص", edit: "تعديل شخص", link: "ربط الأبناء", spouse: "ربط الزوج/الزوجة", divorce: "طلاق", contributions: "الطلبات" }
+    : { stats: "Statistics", add: "Add Person", edit: "Edit Person", link: "Link Child", spouse: "Link Spouse", divorce: "Divorce", contributions: "Requests" };
 
   const relationLabels = isAr
     ? { father: "أب", mother: "أم", spouse: "زوج/زوجة", child: "ابن/بنت", sibling: "أخ/أخت" }
@@ -569,6 +595,37 @@ function AdminPanel({ language, onDataChanged, onClose }) {
               </div>
               <button className="form-submit" onClick={handleAddSpouse}>
                 {isAr ? "ربط" : "Link Spouse"}
+              </button>
+            </div>
+          )}
+
+          {/* DIVORCE TAB */}
+          {activeTab === "divorce" && (
+            <div className="admin-form">
+              <div className="form-group">
+                <label>{isAr ? "الشخص الأول" : "Person"}</label>
+                <SearchableSelect
+                  options={persons.map((p) => ({ id: p.id, label: getChain(p) }))}
+                  value={divorceLink.person_id}
+                  onChange={(v) => setDivorceLink({ ...divorceLink, person_id: v, spouse_id: "" })}
+                  placeholder={isAr ? "اختر..." : "Select..."}
+                  isAr={isAr}
+                />
+              </div>
+              <div className="form-group">
+                <label>{isAr ? "الزوج/الزوجة" : "Spouse"}</label>
+                <SearchableSelect
+                  options={persons
+                    .filter((p) => String(p.id) !== divorceLink.person_id)
+                    .map((p) => ({ id: p.id, label: getChain(p) }))}
+                  value={divorceLink.spouse_id}
+                  onChange={(v) => setDivorceLink({ ...divorceLink, spouse_id: v })}
+                  placeholder={isAr ? "اختر..." : "Select..."}
+                  isAr={isAr}
+                />
+              </div>
+              <button className="form-submit divorce-submit" onClick={handleAddDivorce}>
+                {isAr ? "تسجيل الطلاق" : "Record Divorce"}
               </button>
             </div>
           )}

@@ -145,6 +145,7 @@ function buildGraphData(persons, relationships, highlightedPath = [], layoutPosi
       const sourceId = String(r.person_id);
       const targetId = String(r.related_person_id);
       const isSpouse = r.relationship_type === "spouse";
+      const isDivorced = r.relationship_type === "divorced";
       const isHighlighted = highlightedSet.has(sourceId) && highlightedSet.has(targetId);
 
       return {
@@ -153,9 +154,9 @@ function buildGraphData(persons, relationships, highlightedPath = [], layoutPosi
         target: targetId,
         type: "default",
         style: {
-          stroke: isHighlighted ? "#f59e0b" : isSpouse ? "#e11d48" : "#6b7280",
-          strokeWidth: isHighlighted ? 3 : isSpouse ? 2 : 1.5,
-          strokeDasharray: isSpouse ? "6 3" : "none",
+          stroke: isHighlighted ? "#f59e0b" : isSpouse ? "#e11d48" : isDivorced ? "#eab308" : "#6b7280",
+          strokeWidth: isHighlighted ? 3 : (isSpouse || isDivorced) ? 2 : 1.5,
+          strokeDasharray: isSpouse ? "6 3" : isDivorced ? "3 3" : "none",
         },
         animated: isHighlighted,
       };

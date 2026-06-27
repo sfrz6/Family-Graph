@@ -31,9 +31,10 @@ class Gender(str, Enum):
 
 
 class RelationshipType(str, Enum):
-    """Only these two relationship types are stored."""
+    """Relationship types stored in the database."""
     parent_child = "parent_child"
     spouse = "spouse"
+    divorced = "divorced"
 
 
 class ContributionStatus(str, Enum):
@@ -139,6 +140,15 @@ class AddSpouseCreate(BaseModel):
     """
     Link two existing people as spouses.
     The backend validates genders and checks for duplicates.
+    """
+    person_id: int
+    spouse_id: int
+
+
+class AddDivorceCreate(BaseModel):
+    """
+    Mark two people as divorced.
+    Removes the spouse link and adds a divorced link.
     """
     person_id: int
     spouse_id: int
