@@ -9,7 +9,7 @@
  * - Pending contributions list with approve/reject buttons
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   getStats,
   getPersons,
@@ -60,6 +60,82 @@ function getChainName(person, fatherMap, isAr) {
     first = false;
   }
   return parts.join(" ");
+}
+
+function SearchableSelect({ options, value, onChange, placeholder, isAr }) {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const selectedLabel = options.find((o) => String(o.id) === String(value))?.label || "";
+  const filtered = options.filter((o) =>
+    o.label.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+        setSearch("");
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  const handleSelect = (id) => {
+    onChange(id);
+    setOpen(false);
+    setSearch("");
+  };
+
+  return (
+    <div className="ss-wrap" ref={ref}>
+      <div
+        className={`ss-trigger form-input ${open ? "open" : ""}`}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className={selectedLabel ? "ss-selected" : "ss-placeholder"}>
+          {selectedLabel || placeholder}
+        </span>
+        <span className="ss-arrow">{open ? "▲" : "▼"}</span>
+      </div>
+      {open && (
+        <div className="ss-dropdown" dir={isAr ? "rtl" : "ltr"}>
+          <input
+            className="ss-search"
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={isAr ? "بحث..." : "Search..."}
+            autoFocus
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="ss-options">
+            <div
+              className={`ss-option ${!value ? "selected" : ""}`}
+              onClick={() => handleSelect("")}
+            >
+              {placeholder}
+            </div>
+            {filtered.map((o) => (
+              <div
+                key={o.id}
+                className={`ss-option ${String(o.id) === String(value) ? "selected" : ""}`}
+                onClick={() => handleSelect(String(o.id))}
+              >
+                {o.label}
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <div className="ss-empty">{isAr ? "لا توجد نتائج" : "No results"}</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function AdminPanel({ language, onDataChanged, onClose }) {
@@ -368,16 +444,13 @@ function AdminPanel({ language, onDataChanged, onClose }) {
             <div className="admin-form">
               <div className="form-group">
                 <label>{isAr ? "اختر شخصاً للتعديل" : "Select person to edit"}</label>
-                <select
+                <SearchableSelect
+                  options={persons.map((p) => ({ id: p.id, label: getChain(p) }))}
                   value={editPersonId}
-                  onChange={(e) => handleEditPersonSelect(e.target.value)}
-                  className="form-input"
-                >
-                  <option value="">{isAr ? "اختر..." : "Select..."}</option>
-                  {persons.map((p) => (
-                    <option key={p.id} value={p.id}>{getChain(p)}</option>
-                  ))}
-                </select>
+                  onChange={handleEditPersonSelect}
+                  placeholder={isAr ? "اختر..." : "Select..."}
+                  isAr={isAr}
+                />
               </div>
               {editPersonId && (
                 <>
@@ -435,42 +508,33 @@ function AdminPanel({ language, onDataChanged, onClose }) {
             <div className="admin-form">
               <div className="form-group">
                 <label>{isAr ? "الابن/البنت" : "Child"}</label>
-                <select
+                <SearchableSelect
+                  options={persons.map((p) => ({ id: p.id, label: getChain(p) }))}
                   value={childLink.child_id}
-                  onChange={(e) => setChildLink({ ...childLink, child_id: e.target.value })}
-                  className="form-input"
-                >
-                  <option value="">{isAr ? "اختر..." : "Select..."}</option>
-                  {persons.map((p) => (
-                    <option key={p.id} value={p.id}>{getChain(p)}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setChildLink({ ...childLink, child_id: v })}
+                  placeholder={isAr ? "اختر..." : "Select..."}
+                  isAr={isAr}
+                />
               </div>
               <div className="form-group">
                 <label>{isAr ? "الأب" : "Father"}</label>
-                <select
+                <SearchableSelect
+                  options={males.map((p) => ({ id: p.id, label: getChain(p) }))}
                   value={childLink.father_id}
-                  onChange={(e) => setChildLink({ ...childLink, father_id: e.target.value })}
-                  className="form-input"
-                >
-                  <option value="">{isAr ? "اختر..." : "Select..."}</option>
-                  {males.map((p) => (
-                    <option key={p.id} value={p.id}>{getChain(p)}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setChildLink({ ...childLink, father_id: v })}
+                  placeholder={isAr ? "اختر..." : "Select..."}
+                  isAr={isAr}
+                />
               </div>
               <div className="form-group">
                 <label>{isAr ? "الأم" : "Mother"}</label>
-                <select
+                <SearchableSelect
+                  options={females.map((p) => ({ id: p.id, label: getChain(p) }))}
                   value={childLink.mother_id}
-                  onChange={(e) => setChildLink({ ...childLink, mother_id: e.target.value })}
-                  className="form-input"
-                >
-                  <option value="">{isAr ? "اختر..." : "Select..."}</option>
-                  {females.map((p) => (
-                    <option key={p.id} value={p.id}>{getChain(p)}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setChildLink({ ...childLink, mother_id: v })}
+                  placeholder={isAr ? "اختر..." : "Select..."}
+                  isAr={isAr}
+                />
               </div>
               <button className="form-submit" onClick={handleLinkChild}>
                 {isAr ? "ربط" : "Link Child"}
@@ -483,31 +547,25 @@ function AdminPanel({ language, onDataChanged, onClose }) {
             <div className="admin-form">
               <div className="form-group">
                 <label>{isAr ? "الشخص الأول" : "Person"}</label>
-                <select
+                <SearchableSelect
+                  options={persons.map((p) => ({ id: p.id, label: getChain(p) }))}
                   value={spouseLink.person_id}
-                  onChange={(e) => setSpouseLink({ ...spouseLink, person_id: e.target.value })}
-                  className="form-input"
-                >
-                  <option value="">{isAr ? "اختر..." : "Select..."}</option>
-                  {persons.map((p) => (
-                    <option key={p.id} value={p.id}>{getChain(p)}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setSpouseLink({ ...spouseLink, person_id: v })}
+                  placeholder={isAr ? "اختر..." : "Select..."}
+                  isAr={isAr}
+                />
               </div>
               <div className="form-group">
                 <label>{isAr ? "الزوج/الزوجة" : "Spouse"}</label>
-                <select
-                  value={spouseLink.spouse_id}
-                  onChange={(e) => setSpouseLink({ ...spouseLink, spouse_id: e.target.value })}
-                  className="form-input"
-                >
-                  <option value="">{isAr ? "اختر..." : "Select..."}</option>
-                  {persons
+                <SearchableSelect
+                  options={persons
                     .filter((p) => String(p.id) !== spouseLink.person_id)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>{getChain(p)}</option>
-                    ))}
-                </select>
+                    .map((p) => ({ id: p.id, label: getChain(p) }))}
+                  value={spouseLink.spouse_id}
+                  onChange={(v) => setSpouseLink({ ...spouseLink, spouse_id: v })}
+                  placeholder={isAr ? "اختر..." : "Select..."}
+                  isAr={isAr}
+                />
               </div>
               <button className="form-submit" onClick={handleAddSpouse}>
                 {isAr ? "ربط" : "Link Spouse"}

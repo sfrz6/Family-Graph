@@ -714,6 +714,54 @@ body {
 }
 .form-submit:hover { background: #2563eb; }
 
+/* Searchable Select */
+.ss-wrap { position: relative; width: 100%; }
+.ss-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.ss-trigger.open { border-color: #3b82f6; }
+.ss-placeholder { color: #64748b; }
+.ss-selected { color: #e2e8f0; }
+.ss-arrow { font-size: 10px; color: #64748b; margin-inline-start: 6px; flex-shrink: 0; }
+.ss-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #1e293b;
+  border: 1px solid #3b82f6;
+  border-radius: 8px;
+  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  overflow: hidden;
+}
+.ss-search {
+  width: 100%;
+  padding: 8px 10px;
+  background: #0f172a;
+  border: none;
+  border-bottom: 1px solid #334155;
+  color: #e2e8f0;
+  font-size: 13px;
+  outline: none;
+}
+.ss-search::placeholder { color: #64748b; }
+.ss-options { max-height: 200px; overflow-y: auto; }
+.ss-option {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.ss-option:hover { background: #334155; color: #f1f5f9; }
+.ss-option.selected { background: #1d4ed8; color: #fff; }
+.ss-empty { padding: 10px 12px; font-size: 13px; color: #64748b; text-align: center; }
+
 /* Contributions List */
 .contributions-list { display: flex; flex-direction: column; gap: 8px; }
 .no-data { color: #64748b; font-size: 14px; text-align: center; padding: 20px; }

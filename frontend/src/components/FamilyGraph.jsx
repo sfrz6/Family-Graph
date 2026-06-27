@@ -46,10 +46,26 @@ function calculateGenerations(persons, relationships) {
       if (parentsOf[r.related_person_id]) parentsOf[r.related_person_id].push(r.person_id);
     });
 
-  const roots = persons.filter((p) => parentsOf[p.id].length === 0);
   const generations = {};
-  const queue = roots.map((r) => ({ id: r.id, gen: 1 })); // 1-indexed: oldest ancestor = 1
   const visited = new Set();
+  const queue = [];
+
+  // Anchor stored-generation people first so children inherit the correct row,
+  // even when a parent has no parent-links of their own in the system.
+  persons.forEach((p) => {
+    if (p.generation != null) {
+      generations[p.id] = p.generation;
+      visited.add(p.id);
+      childrenOf[p.id].forEach((childId) => {
+        if (!visited.has(childId)) queue.push({ id: childId, gen: p.generation + 1 });
+      });
+    }
+  });
+
+  // Seed BFS from true roots (no parents) that haven't been anchored yet.
+  persons
+    .filter((p) => parentsOf[p.id].length === 0 && !visited.has(p.id))
+    .forEach((p) => queue.push({ id: p.id, gen: 1 }));
 
   while (queue.length > 0) {
     const { id, gen } = queue.shift();
@@ -61,15 +77,11 @@ function calculateGenerations(persons, relationships) {
     });
   }
 
-  // Stored generation takes priority over BFS — lets admins pin a person
-  // to the correct row even before parent links are set up.
+  // Anyone still unvisited (isolated, no stored gen, no parents) defaults to row 1.
   persons.forEach((p) => {
-    if (p.generation != null) {
-      generations[p.id] = p.generation;
-    } else if (generations[p.id] === undefined) {
-      generations[p.id] = 1;
-    }
+    if (generations[p.id] === undefined) generations[p.id] = 1;
   });
+
   return generations;
 }
 
