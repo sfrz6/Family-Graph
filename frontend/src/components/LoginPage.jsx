@@ -75,6 +75,11 @@ function LoginPage({ onLogin }) {
             {loading ? "Checking..." : "Enter"}
           </button>
         </form>
+
+        <div className="login-credit">
+          <span className="login-credit-line">✦</span>
+          <p className="login-credit-text">تم بواسطة سليمان بن محمد</p>
+        </div>
       </div>
     </div>
   );
