@@ -296,7 +296,7 @@ def interpret_arabic(steps, genders, persons):
             if remaining == ["up"]:
                 return "حمو" if genders[-1] == "male" else "حماة"
             if remaining == ["down"]:
-                return "ابن الزوج/الزوجة" if is_male else "بنت الزوج/الزوجة"
+                return "ربيب" if is_male else "ربيبة"
             if remaining == ["up", "down"]:
                 return "أخو الزوج/الزوجة" if is_male else "أخت الزوج/الزوجة"
             if remaining.count("up") == 2 and remaining.count("down") == 0:
@@ -304,7 +304,7 @@ def interpret_arabic(steps, genders, persons):
         if spouse_pos == len(steps) - 1:
             preceding = steps[:-1]
             if preceding == ["down"]:
-                return "زوج البنت" if is_male else "زوجة الابن"
+                return "صهر" if is_male else "كنّة"
             if preceding == ["up"]:
                 return "زوج الأم" if is_male else "زوجة الأب"
             if preceding == ["up", "down"]:
@@ -416,7 +416,7 @@ def interpret_arabic(steps, genders, persons):
     # --- COUSIN REMOVALS ---
     # Parent's cousin (up 3, down 2)
     if ups == 3 and downs == 2:
-        uncle_gender = genders[3]
+        uncle_gender = genders[4]  # index 4 = the uncle/aunt (3 ups + 1 down)
         if first_up_gender == "male":
             if uncle_gender == "male":
                 return "ابن عم الأب" if is_male else "بنت عم الأب"

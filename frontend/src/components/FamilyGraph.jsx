@@ -640,13 +640,13 @@ function FamilyGraphInner({ role, onLogout, language, setLanguage }) {
             <span className="relationship-term">
               {isAr ? relationshipResult.relationship_ar : relationshipResult.relationship_en}
             </span>
-            <span className="relationship-path">
+            <span className="relationship-path" dir={isAr ? "rtl" : "ltr"}>
               {relationshipResult.path
                 .map((id) => {
                   const p = persons.find((per) => per.id === id);
                   return p ? (isAr ? p.name_ar : p.name_en) : "?";
                 })
-                .join(" → ")}
+                .join(isAr ? " ← " : " → ")}
             </span>
           </div>
           <button className="banner-close" onClick={() => setRelationshipResult(null)}>✕</button>

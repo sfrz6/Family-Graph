@@ -19,6 +19,7 @@ import {
   addChild,
   addSpouse,
   addDivorce,
+  deleteRelationship,
   getContributions,
   approveContribution,
   rejectContribution,
@@ -179,6 +180,9 @@ function AdminPanel({ language, onDataChanged, onClose }) {
     spouse_id: "",
   });
 
+  // Delete relation form
+  const [deleteRel, setDeleteRel] = useState({ relType: "", p1: "", p2: "", p3: "" });
+
   const isAr = language === "ar";
 
   useEffect(() => {
@@ -311,6 +315,66 @@ function AdminPanel({ language, onDataChanged, onClose }) {
     }
   };
 
+  const handleDeleteRelation = async () => {
+    const { relType, p1, p2, p3 } = deleteRel;
+    if (!relType) { showMessage(isAr ? "يرجى اختيار نوع العلاقة" : "Please select relation type"); return; }
+
+    if (relType === "deceased") {
+      if (!p1) { showMessage(isAr ? "يرجى اختيار شخص" : "Please select a person"); return; }
+      try {
+        await updatePerson(Number(p1), { is_deceased: false });
+        setDeleteRel({ relType: "deceased", p1: "", p2: "", p3: "" });
+        showMessage(isAr ? "تم التراجع عن الوفاة ✓" : "Deceased status removed ✓");
+        loadData(); onDataChanged();
+      } catch { showMessage(isAr ? "حدث خطأ" : "Error"); }
+      return;
+    }
+
+    if (relType === "parent_child") {
+      if (!p1) { showMessage(isAr ? "يرجى اختيار الابن/البنت" : "Please select child"); return; }
+      if (!p2 && !p3) { showMessage(isAr ? "يرجى اختيار الأب أو الأم" : "Please select father or mother"); return; }
+      const toDelete = [];
+      if (p2) {
+        const rel = relationships.find((r) =>
+          r.relationship_type === "parent_child" &&
+          r.person_id === Number(p2) && r.related_person_id === Number(p1)
+        );
+        if (rel) toDelete.push(rel.id);
+      }
+      if (p3) {
+        const rel = relationships.find((r) =>
+          r.relationship_type === "parent_child" &&
+          r.person_id === Number(p3) && r.related_person_id === Number(p1)
+        );
+        if (rel) toDelete.push(rel.id);
+      }
+      if (toDelete.length === 0) { showMessage(isAr ? "لم يتم العثور على العلاقة" : "Relationship not found"); return; }
+      try {
+        await Promise.all(toDelete.map((id) => deleteRelationship(id)));
+        setDeleteRel({ relType: "parent_child", p1: "", p2: "", p3: "" });
+        showMessage(isAr ? "تم حذف العلاقة ✓" : "Relationship deleted ✓");
+        loadData(); onDataChanged();
+      } catch { showMessage(isAr ? "حدث خطأ" : "Error"); }
+      return;
+    }
+
+    // spouse or divorced
+    if (!p1 || !p2) { showMessage(isAr ? "يرجى اختيار الشخصين" : "Please select both persons"); return; }
+    const rel = relationships.find((r) =>
+      r.relationship_type === relType && (
+        (r.person_id === Number(p1) && r.related_person_id === Number(p2)) ||
+        (r.person_id === Number(p2) && r.related_person_id === Number(p1))
+      )
+    );
+    if (!rel) { showMessage(isAr ? "لم يتم العثور على العلاقة" : "Relationship not found"); return; }
+    try {
+      await deleteRelationship(rel.id);
+      setDeleteRel({ ...deleteRel, p1: "", p2: "" });
+      showMessage(isAr ? "تم حذف العلاقة ✓" : "Relationship deleted ✓");
+      loadData(); onDataChanged();
+    } catch { showMessage(isAr ? "حدث خطأ" : "Error"); }
+  };
+
   const handleApprove = async (id) => {
     try {
       await approveContribution(id);
@@ -338,8 +402,8 @@ function AdminPanel({ language, onDataChanged, onClose }) {
   const females = persons.filter((p) => p.gender === "female");
 
   const tabs = isAr
-    ? { stats: "إحصائيات", add: "إضافة شخص", edit: "تعديل شخص", link: "ربط الأبناء", spouse: "ربط الزوج/الزوجة", divorce: "طلاق", contributions: "الطلبات" }
-    : { stats: "Statistics", add: "Add Person", edit: "Edit Person", link: "Link Child", spouse: "Link Spouse", divorce: "Divorce", contributions: "Requests" };
+    ? { stats: "إحصائيات", add: "إضافة شخص", edit: "تعديل شخص", link: "ربط الأبناء", spouse: "ربط الزوج/الزوجة", divorce: "طلاق", delete: "حذف علاقة", contributions: "الطلبات" }
+    : { stats: "Statistics", add: "Add Person", edit: "Edit Person", link: "Link Child", spouse: "Link Spouse", divorce: "Divorce", delete: "Delete Relation", contributions: "Requests" };
 
   const relationLabels = isAr
     ? { father: "أب", mother: "أم", spouse: "زوج/زوجة", child: "ابن/بنت", sibling: "أخ/أخت" }
@@ -627,6 +691,107 @@ function AdminPanel({ language, onDataChanged, onClose }) {
               <button className="form-submit divorce-submit" onClick={handleAddDivorce}>
                 {isAr ? "تسجيل الطلاق" : "Record Divorce"}
               </button>
+            </div>
+          )}
+
+          {/* DELETE RELATION TAB */}
+          {activeTab === "delete" && (
+            <div className="admin-form">
+              <div className="form-group">
+                <label>{isAr ? "نوع العلاقة" : "Relation Type"}</label>
+                <select
+                  value={deleteRel.relType}
+                  onChange={(e) => setDeleteRel({ relType: e.target.value, p1: "", p2: "", p3: "" })}
+                  className="form-input"
+                >
+                  <option value="">{isAr ? "اختر..." : "Select..."}</option>
+                  <option value="parent_child">{isAr ? "أب/أم ← ابن/بنت" : "Parent → Child"}</option>
+                  <option value="spouse">{isAr ? "زواج" : "Spouse"}</option>
+                  <option value="divorced">{isAr ? "طلاق" : "Divorced"}</option>
+                  <option value="deceased">{isAr ? "وفاة (تراجع عن خطأ)" : "Death (undo mistake)"}</option>
+                </select>
+              </div>
+
+              {deleteRel.relType === "parent_child" && (
+                <>
+                  <div className="form-group">
+                    <label>{isAr ? "الابن/البنت" : "Child"}</label>
+                    <SearchableSelect
+                      options={persons.map((p) => ({ id: p.id, label: getChain(p) }))}
+                      value={deleteRel.p1}
+                      onChange={(v) => setDeleteRel({ ...deleteRel, p1: v, p2: "", p3: "" })}
+                      placeholder={isAr ? "اختر..." : "Select..."}
+                      isAr={isAr}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{isAr ? "الأب (اختياري)" : "Father (optional)"}</label>
+                    <SearchableSelect
+                      options={males.map((p) => ({ id: p.id, label: getChain(p) }))}
+                      value={deleteRel.p2}
+                      onChange={(v) => setDeleteRel({ ...deleteRel, p2: v })}
+                      placeholder={isAr ? "اختر..." : "Select..."}
+                      isAr={isAr}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{isAr ? "الأم (اختيارية)" : "Mother (optional)"}</label>
+                    <SearchableSelect
+                      options={females.map((p) => ({ id: p.id, label: getChain(p) }))}
+                      value={deleteRel.p3}
+                      onChange={(v) => setDeleteRel({ ...deleteRel, p3: v })}
+                      placeholder={isAr ? "اختر..." : "Select..."}
+                      isAr={isAr}
+                    />
+                  </div>
+                </>
+              )}
+
+              {(deleteRel.relType === "spouse" || deleteRel.relType === "divorced") && (
+                <>
+                  <div className="form-group">
+                    <label>{isAr ? "الشخص الأول" : "Person 1"}</label>
+                    <SearchableSelect
+                      options={persons.map((p) => ({ id: p.id, label: getChain(p) }))}
+                      value={deleteRel.p1}
+                      onChange={(v) => setDeleteRel({ ...deleteRel, p1: v, p2: "" })}
+                      placeholder={isAr ? "اختر..." : "Select..."}
+                      isAr={isAr}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{isAr ? "الشخص الثاني" : "Person 2"}</label>
+                    <SearchableSelect
+                      options={persons.filter((p) => String(p.id) !== deleteRel.p1).map((p) => ({ id: p.id, label: getChain(p) }))}
+                      value={deleteRel.p2}
+                      onChange={(v) => setDeleteRel({ ...deleteRel, p2: v })}
+                      placeholder={isAr ? "اختر..." : "Select..."}
+                      isAr={isAr}
+                    />
+                  </div>
+                </>
+              )}
+
+              {deleteRel.relType === "deceased" && (
+                <div className="form-group">
+                  <label>{isAr ? "الشخص المتوفى (بالخطأ)" : "Person (incorrectly marked)"}</label>
+                  <SearchableSelect
+                    options={persons.filter((p) => p.is_deceased).map((p) => ({ id: p.id, label: getChain(p) }))}
+                    value={deleteRel.p1}
+                    onChange={(v) => setDeleteRel({ ...deleteRel, p1: v })}
+                    placeholder={isAr ? "اختر..." : "Select..."}
+                    isAr={isAr}
+                  />
+                </div>
+              )}
+
+              {deleteRel.relType && (
+                <button className="form-submit delete-rel-submit" onClick={handleDeleteRelation}>
+                  {deleteRel.relType === "deceased"
+                    ? (isAr ? "تراجع عن الوفاة" : "Undo Death")
+                    : (isAr ? "حذف العلاقة" : "Delete Relation")}
+                </button>
+              )}
             </div>
           )}
 

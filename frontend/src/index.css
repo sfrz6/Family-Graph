@@ -71,16 +71,17 @@ body {
   gap: 6px;
 }
 .login-credit-line {
-  color: #334155;
+  color: #64748b;
   font-size: 12px;
   letter-spacing: 6px;
 }
 .login-credit-text {
-  font-size: 13px;
-  color: #475569;
+  font-size: 14px;
+  color: #94a3b8;
   font-family: "Segoe UI", system-ui, sans-serif;
   direction: rtl;
   letter-spacing: 0.5px;
+  font-weight: 500;
 }
 
 .login-button {
@@ -736,6 +737,8 @@ body {
 .form-submit:hover { background: #2563eb; }
 .form-submit.divorce-submit { background: #854d0e; color: #fef08a; }
 .form-submit.divorce-submit:hover { background: #713f12; }
+.form-submit.delete-rel-submit { background: #7f1d1d; color: #fca5a5; }
+.form-submit.delete-rel-submit:hover { background: #991b1b; }
 
 /* Searchable Select */
 .ss-wrap { position: relative; width: 100%; }
