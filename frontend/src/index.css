@@ -499,7 +499,7 @@ body {
 .person-node.selected, .person-node:hover { box-shadow: 0 0 16px rgba(59,130,246,0.4); }
 .person-node.female.selected, .person-node.female:hover { box-shadow: 0 0 16px rgba(147,51,234,0.4); }
 .person-node.highlighted { border-color: #f59e0b !important; box-shadow: 0 0 20px rgba(245,158,11,0.5); }
-.person-node.deceased { background: #1e2533 !important; border-color: #ffffff !important; opacity: 0.85; }
+.person-node.deceased { background: #1e2533 !important; border-color: #475569 !important; opacity: 0.85; }
 .person-node.deceased .node-name-en,
 .person-node.deceased .node-name-ar { color: #ffffff; }
 .node-deceased-label { font-size: 10px; color: #ffffff; margin-top: 2px; }

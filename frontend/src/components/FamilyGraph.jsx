@@ -229,8 +229,31 @@ function buildDepthOneLayout(centeredId, persons, relationships) {
 }
 
 // Males-only view for the initial tree, before any node has been clicked.
+// Excludes males who have a mother in the system but no father — they belong
+// to the family through the maternal side and would appear disconnected/at the
+// wrong generation in a paternal-lineage tree.
 function getMalesView(persons, relationships) {
-  const males = persons.filter((p) => p.gender === "male");
+  const personMap = {};
+  persons.forEach((p) => { personMap[p.id] = p; });
+
+  const parentsOf = {};
+  persons.forEach((p) => { parentsOf[p.id] = []; });
+  relationships
+    .filter((r) => r.relationship_type === "parent_child")
+    .forEach((r) => {
+      if (parentsOf[r.related_person_id]) parentsOf[r.related_person_id].push(r.person_id);
+    });
+
+  const males = persons.filter((p) => {
+    if (p.gender !== "male") return false;
+    const parentIds = parentsOf[p.id] || [];
+    // Has parents in the system but none are male → mother-only, skip
+    if (parentIds.length > 0 && !parentIds.some((pid) => personMap[pid]?.gender === "male")) {
+      return false;
+    }
+    return true;
+  });
+
   const maleIds = new Set(males.map((p) => p.id));
   return {
     persons: males,
