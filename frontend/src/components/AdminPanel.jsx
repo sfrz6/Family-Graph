@@ -67,23 +67,44 @@ function getChainName(person, fatherMap, isAr) {
 function SearchableSelect({ options, value, onChange, placeholder, isAr }) {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [dropdownPos, setDropdownPos] = useState({});
+  const triggerRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
 
   const selectedLabel = options.find((o) => String(o.id) === String(value))?.label || "";
   const filtered = options.filter((o) =>
     o.label.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleToggle = () => {
+    if (!open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPos({ left: rect.left, width: rect.width, top: rect.bottom + 4 });
+    }
+    setOpen((v) => !v);
+  };
+
   useEffect(() => {
     if (!open) return;
-    const handleClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
+    const t = setTimeout(() => searchRef.current?.focus(), 60);
+    return () => clearTimeout(t);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => {
+      if (!triggerRef.current?.contains(e.target) && !dropdownRef.current?.contains(e.target)) {
         setOpen(false);
         setSearch("");
       }
     };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", close);
+    document.addEventListener("touchstart", close, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("touchstart", close);
+    };
   }, [open]);
 
   const handleSelect = (id) => {
@@ -93,10 +114,11 @@ function SearchableSelect({ options, value, onChange, placeholder, isAr }) {
   };
 
   return (
-    <div className="ss-wrap" ref={ref}>
+    <div className="ss-wrap">
       <div
         className={`ss-trigger form-input ${open ? "open" : ""}`}
-        onClick={() => setOpen((v) => !v)}
+        ref={triggerRef}
+        onClick={handleToggle}
       >
         <span className={selectedLabel ? "ss-selected" : "ss-placeholder"}>
           {selectedLabel || placeholder}
@@ -104,20 +126,24 @@ function SearchableSelect({ options, value, onChange, placeholder, isAr }) {
         <span className="ss-arrow">{open ? "▲" : "▼"}</span>
       </div>
       {open && (
-        <div className="ss-dropdown" dir={isAr ? "rtl" : "ltr"}>
+        <div
+          className="ss-dropdown"
+          style={dropdownPos}
+          ref={dropdownRef}
+          dir={isAr ? "rtl" : "ltr"}
+        >
           <input
             className="ss-search"
+            ref={searchRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={isAr ? "بحث..." : "Search..."}
-            autoFocus
-            onClick={(e) => e.stopPropagation()}
           />
           <div className="ss-options">
             <div
               className={`ss-option ${!value ? "selected" : ""}`}
-              onClick={() => handleSelect("")}
+              onMouseDown={(e) => { e.preventDefault(); handleSelect(""); }}
             >
               {placeholder}
             </div>
@@ -125,7 +151,7 @@ function SearchableSelect({ options, value, onChange, placeholder, isAr }) {
               <div
                 key={o.id}
                 className={`ss-option ${String(o.id) === String(value) ? "selected" : ""}`}
-                onClick={() => handleSelect(String(o.id))}
+                onMouseDown={(e) => { e.preventDefault(); handleSelect(String(o.id)); }}
               >
                 {o.label}
               </div>
