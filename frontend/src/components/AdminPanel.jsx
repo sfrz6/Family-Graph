@@ -833,10 +833,11 @@ function AdminPanel({ language, onDataChanged, onClose }) {
 
                   const isRelative = c.contribution_type === "add_relative";
                   const isDeceased = c.contribution_type === "mark_deceased";
+                  const isDelete = c.contribution_type === "delete_person";
                   const requestedName = isAr
                     ? data.name_ar || data.name_en || ""
                     : data.name_en || data.name_ar || "";
-                  const originalPerson = (isRelative || isDeceased) && data.person_id
+                  const originalPerson = (isRelative || isDeceased || isDelete) && data.person_id
                     ? persons.find((p) => p.id === data.person_id)
                     : null;
                   const originalName = originalPerson
@@ -852,11 +853,15 @@ function AdminPanel({ language, onDataChanged, onClose }) {
                         <span className="contribution-type">
                           {isDeceased
                             ? (isAr ? "إبلاغ عن وفاة" : "Report Deceased")
+                            : isDelete
+                            ? (isAr ? "طلب حذف" : "Delete Request")
                             : isRelative
                             ? (isAr ? "إضافة قريب" : "Add Relative")
                             : (isAr ? "إضافة شخص" : "Add Person")}
                         </span>
                         {isDeceased ? (
+                          <span className="contribution-detail">{originalName}</span>
+                        ) : isDelete ? (
                           <span className="contribution-detail">{originalName}</span>
                         ) : isRelative ? (
                           <span className="contribution-detail">

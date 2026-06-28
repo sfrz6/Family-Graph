@@ -550,6 +550,44 @@ body {
 }
 .panel-delete-btn:hover { background: #7f1d1d; color: #fca5a5; }
 .panel-delete-error { color: #f87171; font-size: 12px; padding: 8px 16px 0; }
+.panel-delete-request-btn {
+  background: transparent;
+  border: 1px solid #7f1d1d;
+  color: #fca5a5;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.panel-delete-request-btn:hover { background: #7f1d1d; }
+.panel-delete-requested { font-size: 11px; color: #4ade80; }
+
+.descendant-stats {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+.descendant-stats-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.descendant-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+  color: #cbd5e1;
+  border-top: 1px solid #334155;
+}
+.descendant-stat-row:first-of-type { border-top: none; }
+.descendant-stat-value { font-weight: 700; color: #e2e8f0; }
 
 .panel-body { padding: 12px 16px; }
 .panel-section { margin-bottom: 16px; }

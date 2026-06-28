@@ -30,6 +30,7 @@ function PersonPanel({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [deceasedSubmitted, setDeceasedSubmitted] = useState(false);
+  const [deleteRequested, setDeleteRequested] = useState(false);
 
   const isAr = language === "ar";
 
@@ -39,6 +40,7 @@ function PersonPanel({
       setShowAddForm(null);
       setMessage("");
       setDeceasedSubmitted(false);
+      setDeleteRequested(false);
     }
   }, [person?.id]);
 
@@ -79,6 +81,31 @@ function PersonPanel({
     .map((r) => getPersonById(r.related_person_id))
     .filter(Boolean);
   const uniqueSiblings = [...new Map(siblings.map((s) => [s.id, s])).values()];
+
+  // Descendant stats
+  const getChildIds = (pid) =>
+    relationships
+      .filter((r) => r.relationship_type === "parent_child" && r.person_id === pid)
+      .map((r) => r.related_person_id);
+
+  const grandchildCount = [...new Set(children.flatMap((c) => getChildIds(c.id)))].length;
+
+  const getAllDescendantCount = (startId) => {
+    const visited = new Set();
+    const queue = [startId];
+    while (queue.length) {
+      const pid = queue.shift();
+      for (const cid of getChildIds(pid)) {
+        if (!visited.has(cid)) {
+          visited.add(cid);
+          queue.push(cid);
+        }
+      }
+    }
+    return visited.size;
+  };
+
+  const totalDescendants = children.length > 0 ? getAllDescendantCount(person.id) : 0;
 
   const labels = isAr
     ? { parents: "الوالدين", spouse: "الزوج/الزوجة", children: "الأبناء", siblings: "الإخوة", addRelative: "إضافة قريب", close: "إغلاق" }
@@ -130,6 +157,18 @@ function PersonPanel({
       onPersonDeleted(person.id);
     } catch (err) {
       setDeleteError(isAr ? "حدث خطأ أثناء الحذف" : "Error deleting person");
+    }
+  };
+
+  const handleRequestDeletion = async () => {
+    try {
+      await submitContribution({
+        contribution_type: "delete_person",
+        data: JSON.stringify({ person_id: person.id, person_name: person.name_ar }),
+      });
+      setDeleteRequested(true);
+    } catch {
+      setMessage(isAr ? "حدث خطأ" : "Error occurred");
     }
   };
 
@@ -186,6 +225,14 @@ function PersonPanel({
               {isAr ? "حذف" : "Delete"}
             </button>
           )}
+          {role === "user" && !deleteRequested && (
+            <button className="panel-delete-request-btn" onClick={handleRequestDeletion}>
+              {isAr ? "طلب حذف" : "Request Deletion"}
+            </button>
+          )}
+          {role === "user" && deleteRequested && (
+            <span className="panel-delete-requested">{isAr ? "تم الإرسال ✓" : "Sent ✓"}</span>
+          )}
           <button className="panel-close" onClick={onClose}>✕</button>
         </div>
       </div>
@@ -208,6 +255,23 @@ function PersonPanel({
       )}
 
       <div className="panel-body">
+        {children.length > 0 && (
+          <div className="descendant-stats">
+            <div className="descendant-stats-title">{isAr ? "الذرية" : "Descendants"}</div>
+            <div className="descendant-stat-row">
+              <span>{isAr ? "الأبناء المباشرون" : "Children"}</span>
+              <span className="descendant-stat-value">{children.length}</span>
+            </div>
+            <div className="descendant-stat-row">
+              <span>{isAr ? "الأحفاد" : "Grandchildren"}</span>
+              <span className="descendant-stat-value">{grandchildCount}</span>
+            </div>
+            <div className="descendant-stat-row">
+              <span>{isAr ? "جميع الذرية" : "All Descendants"}</span>
+              <span className="descendant-stat-value">{totalDescendants}</span>
+            </div>
+          </div>
+        )}
         {renderPersonList(labels.parents, parents)}
         {renderPersonList(labels.spouse, spouses)}
         {renderPersonList(labels.children, children)}

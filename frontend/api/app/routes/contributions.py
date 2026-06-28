@@ -327,6 +327,16 @@ def approve_contribution(contribution_id: int, db: Session = Depends(get_db), _a
             raise HTTPException(status_code=404, detail="Person not found")
         person.is_deceased = True
 
+    elif contribution.contribution_type == "delete_person":
+        person = db.query(Person).filter(Person.id == data["person_id"]).first()
+        if not person:
+            raise HTTPException(status_code=404, detail="Person not found")
+        db.query(Relationship).filter(
+            (Relationship.person_id == data["person_id"]) |
+            (Relationship.related_person_id == data["person_id"])
+        ).delete(synchronize_session=False)
+        db.delete(person)
+
     contribution.status = "approved"
     contribution.reviewed_at = datetime.utcnow()
     db.commit()
