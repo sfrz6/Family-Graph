@@ -698,6 +698,7 @@ function FamilyGraphInner({ role, onLogout, language, setLanguage }) {
         onClose={() => setSelectedPerson(null)}
         onPersonClick={handlePanelPersonClick}
         onPersonDeleted={handlePersonDeleted}
+        onDataChanged={handleDataChanged}
         language={language}
         role={role}
       />

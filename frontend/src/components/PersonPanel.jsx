@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { getMissingRelatives, submitContribution, deletePerson } from "../api";
+import { getMissingRelatives, submitContribution, deletePerson, updatePerson } from "../api";
 import ConfirmDialog from "./ConfirmDialog";
 
 function PersonPanel({
@@ -20,6 +20,7 @@ function PersonPanel({
   onClose,
   onPersonClick,
   onPersonDeleted,
+  onDataChanged,
   language,
   role,
 }) {
@@ -31,6 +32,10 @@ function PersonPanel({
   const [deleteError, setDeleteError] = useState("");
   const [deceasedSubmitted, setDeceasedSubmitted] = useState(false);
   const [deleteRequested, setDeleteRequested] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState({ name_en: "", name_ar: "", gender: "male" });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editMessage, setEditMessage] = useState("");
 
   const isAr = language === "ar";
 
@@ -41,6 +46,8 @@ function PersonPanel({
       setMessage("");
       setDeceasedSubmitted(false);
       setDeleteRequested(false);
+      setEditMode(false);
+      setEditMessage("");
     }
   }, [person?.id]);
 
@@ -160,6 +167,30 @@ function PersonPanel({
     }
   };
 
+  const handleStartEdit = () => {
+    setEditData({ name_en: person.name_en, name_ar: person.name_ar, gender: person.gender });
+    setEditMode(true);
+    setEditMessage("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editData.name_ar.trim()) {
+      setEditMessage(isAr ? "يرجى إدخال الاسم بالعربي" : "Arabic name is required");
+      return;
+    }
+    setEditSaving(true);
+    try {
+      await updatePerson(person.id, editData);
+      setEditMode(false);
+      setEditMessage("");
+      if (onDataChanged) onDataChanged();
+    } catch {
+      setEditMessage(isAr ? "حدث خطأ أثناء الحفظ" : "Error saving changes");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const handleRequestDeletion = async () => {
     try {
       await submitContribution({
@@ -208,19 +239,62 @@ function PersonPanel({
   return (
     <div className={`person-panel ${isAr ? "rtl" : "ltr"}`}>
       <div className="panel-header">
-        <div>
-          <h2 className="panel-name">
-            {getName(person)}
-            {person.is_deceased && (
-              <span className="panel-deceased-badge">{isAr ? " (متوفى)" : " (deceased)"}</span>
-            )}
-          </h2>
-          <p className="panel-name-secondary">
-            {isAr ? person.name_en : person.name_ar}
-          </p>
-        </div>
+        {editMode ? (
+          <div className="panel-edit-form">
+            <input
+              type="text"
+              value={editData.name_ar}
+              onChange={(e) => setEditData({ ...editData, name_ar: e.target.value })}
+              placeholder={isAr ? "الاسم بالعربي" : "Arabic name"}
+              className="form-input"
+              dir="rtl"
+              autoFocus
+            />
+            <input
+              type="text"
+              value={editData.name_en}
+              onChange={(e) => setEditData({ ...editData, name_en: e.target.value })}
+              placeholder={isAr ? "الاسم بالإنجليزي" : "English name"}
+              className="form-input"
+            />
+            <select
+              value={editData.gender}
+              onChange={(e) => setEditData({ ...editData, gender: e.target.value })}
+              className="form-input"
+            >
+              <option value="male">{isAr ? "ذكر" : "Male"}</option>
+              <option value="female">{isAr ? "أنثى" : "Female"}</option>
+            </select>
+            {editMessage && <p className="panel-edit-message">{editMessage}</p>}
+            <div className="form-actions">
+              <button className="form-submit-sm" onClick={handleSaveEdit} disabled={editSaving}>
+                {editSaving ? (isAr ? "جاري الحفظ..." : "Saving...") : (isAr ? "حفظ" : "Save")}
+              </button>
+              <button className="form-cancel" onClick={() => setEditMode(false)}>
+                {isAr ? "إلغاء" : "Cancel"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <h2 className="panel-name">
+              {getName(person)}
+              {person.is_deceased && (
+                <span className="panel-deceased-badge">{isAr ? " (متوفى)" : " (deceased)"}</span>
+              )}
+            </h2>
+            <p className="panel-name-secondary">
+              {isAr ? person.name_en : person.name_ar}
+            </p>
+          </div>
+        )}
         <div className="panel-header-actions">
-          {role === "admin" && (
+          {role === "admin" && !editMode && (
+            <button className="panel-edit-btn" onClick={handleStartEdit}>
+              {isAr ? "تعديل" : "Edit"}
+            </button>
+          )}
+          {role === "admin" && !editMode && (
             <button className="panel-delete-btn" onClick={() => setShowDeleteConfirm(true)}>
               {isAr ? "حذف" : "Delete"}
             </button>
